@@ -52,7 +52,7 @@ GEO_RULES = {
         "show_nationality": False,
         "show_marital": False,
         "show_gpa": True,
-        "show_visa": True,
+        "show_visa": False,
         "show_religion": False,
         "date_format": "MM/YYYY",
         "edu_order": "newest_first",
@@ -73,7 +73,7 @@ GEO_RULES = {
         "show_nationality": False,
         "show_marital": False,
         "show_gpa": False,
-        "show_visa": True,
+        "show_visa": False,
         "show_religion": False,
         "date_format": "MM/YYYY",
         "edu_order": "newest_first",
@@ -266,9 +266,41 @@ def calculate_ats_score(data: dict, region: str):
             score += 20
             checks.append("Complete educational history")
 
+    elif region_key == "china":
+        # Photo is highly recommended in China
+        if data.get("profile_photo_url") or data.get("profile_photo") or profile.get("photo"):
+            score += 20
+            checks.append("ID Photo present (Recommended for China)")
+        
+        # Education background is critical
+        if len(data.get("education", [])) > 0:
+            score += 20
+            checks.append("Academic history verified")
+            
+        # Native language summary
+        if personal.get("summary_zh") or profile.get("summary"):
+            score += 10
+            checks.append("Professional profile complete")
+
+    elif region_key == "uae":
+        # Photo is very common
+        if data.get("profile_photo_url") or data.get("profile_photo") or profile.get("photo"):
+            score += 20
+            checks.append("Professional headshot included")
+            
+        # Visa Status is a major factor in UAE
+        if personal.get("visa_status") or personal.get("visa_type"):
+            score += 10
+            checks.append("Visa/Work Authorization clarity")
+            
+        # Education
+        if len(data.get("education", [])) > 0:
+            score += 20
+            checks.append("Education details present")
+
     elif region_key == "korea":
         # Photo is standard
-        if data.get("profile_photo_url") or data.get("profile_photo"):
+        if data.get("profile_photo_url") or data.get("profile_photo") or profile.get("photo"):
             score += 20
             checks.append("Photo attached")
             
@@ -282,6 +314,7 @@ def calculate_ats_score(data: dict, region: str):
         
         if len(data.get("education", [])) > 0:
             score += 10
+            checks.append("Academic background present")
         
     # Final Cap at 100
     return {

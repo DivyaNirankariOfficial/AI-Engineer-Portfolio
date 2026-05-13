@@ -253,6 +253,35 @@ def update_translation(req: TranslationUpdateRequest):
             conn.commit()
     return {"message": "Translation updated"}
 
+class DirectEditRequest(BaseModel):
+    field_name: str
+    locale: str
+    original_text: str
+    translated_text: str
+
+@router.post("/translations/direct-edit/")
+def direct_edit_translation(req: DirectEditRequest):
+    from database import save_translation
+    save_translation(
+        req.field_name, 
+        req.locale, 
+        req.original_text, 
+        req.translated_text, 
+        is_verified=True
+    )
+    return {"message": "Saved successfully"}
+
+class SynthesisRequest(BaseModel):
+    field_name: str
+    locale: str
+    original_text: str
+
+@router.post("/translations/synthesize/")
+async def synthesize_translation(req: SynthesisRequest):
+    from services.translations import synthesize_text
+    synthesized = await synthesize_text(req.original_text, req.locale, req.field_name)
+    return {"synthesized_text": synthesized}
+
 @router.delete("/translations/{t_id}")
 def delete_translation(t_id: int):
     delete_translation_db(t_id)

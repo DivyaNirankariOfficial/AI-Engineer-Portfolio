@@ -3,6 +3,8 @@ import asyncio
 from io import BytesIO
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import sync_playwright
+from markupsafe import Markup
+import html
 
 # Global Playwright concurrency limit
 pdf_semaphore = asyncio.Semaphore(3)
@@ -671,6 +673,25 @@ def build_korea_context(data: dict) -> dict:
     return context
 
 
+def _calc_china_duration(start_year: int, start_month: int, end_year: int, end_month: int, is_current: bool = False) -> str:
+    """Returns Chinese duration string (e.g., '1年3个月')."""
+    total_months = (end_year - start_year) * 12 + (end_month - start_month) + 1
+    if total_months < 0:
+        total_months = 0
+    years = total_months // 12
+    months = total_months % 12
+    
+    parts = []
+    if years > 0:
+        parts.append(f"{years}年")
+    if months > 0:
+        parts.append(f"{months}个月")
+    
+    if not parts:
+        return "1个月"
+    return "".join(parts)
+
+
 def build_china_context(data: dict) -> dict:
     """Builds enriched context for Chinese 简历 template."""
     import copy
@@ -678,17 +699,177 @@ def build_china_context(data: dict) -> dict:
     context = copy.deepcopy(data)
     today = datetime.today()
 
+    profile = context.get('profile', {})
+    
     # ── generated_date in Chinese format ─────────────────────────────────────
     context['generated_date'] = f"{today.year}年{today.month}月{today.day}日"
+
+    # ── profile.address alias ─────────────────────────────────────────────────
+    if not profile.get('address'):
+        profile['address'] = profile.get('location', '')
+
+    # ── personal sub-context for template ────────────────────────────────────
+    raw_personal = profile.get('personal', {})
     
-    # Simple mapping for labels if not already done by translation service
-    context['L_CN'] = {
-        'education': '教育背景',
-        'experience': '工作经历',
-        'projects': '项目经验',
-        'skills': '专业技能',
-        'summary': '自我评价'
+    # DOB Formatting
+    dob_raw = raw_personal.get('dob') or profile.get('dateOfBirth', '')
+    dob_zh = ''
+    if dob_raw:
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
+            try:
+                dob = datetime.strptime(dob_raw, fmt)
+                dob_zh = dob.strftime('%Y年%m月')
+                break
+            except ValueError:
+                continue
+
+    context['personal'] = {
+        'gender':        raw_personal.get('gender', ''),
+        'dob':           dob_zh,
+        'nationality':   raw_personal.get('nationality', '印度'),
+        'visa_status':   raw_personal.get('visa_status', ''),
+        'marital_status': raw_personal.get('marital_status', ''),
+        'summary':       profile.get('summary', ''),
+        'hobbies':       raw_personal.get('hobbies', ''),
     }
+
+    # ── connections ──────────────────────────────────────────────────────────
+    connections = context.get('connections', [])
+    filtered = [
+        c for c in connections
+        if c.get('visible', True) and c.get('url', '').strip()
+    ]
+    context['connections'] = filtered
+
+    # ── education ─────────────────────────────────────────────────────────────
+    for edu in context.get('education', []):
+        year_str = edu.get('year', '')
+        sep = '–' if '–' in year_str else '-'
+        parts = year_str.split(sep)
+        try:
+            sy = int(parts[0].strip()) if parts[0].strip() else 2000
+            ey_raw = parts[1].strip() if len(parts) > 1 else ''
+            is_current = ey_raw.lower() in ('', 'present', 'current')
+            ey = today.year if is_current else (int(ey_raw) if ey_raw else sy + 4)
+        except (ValueError, IndexError):
+            sy, ey, is_current = 2000, 2004, False
+
+        edu['start_year']  = sy
+        edu['start_month'] = 9 # Standard China start
+        edu['end_year']    = ey
+        edu['end_month']   = 6 # Standard China end
+        edu['duration']    = _calc_china_duration(sy, 9, ey, 6, is_current)
+        edu['start']       = (sy, 9)
+
+    # ── experience ────────────────────────────────────────────────────────────
+    for exp in context.get('experience', []):
+        sy, sm, _ = parse_human_date(exp.get('startDate', ''))
+        ey, em, _ = parse_human_date(exp.get('endDate', ''))
+        exp['start_year']  = sy
+        exp['start_month'] = sm
+        exp['end_year']    = ey
+        exp['end_month']   = em
+        exp['start']       = (sy, sm)
+        is_current = exp.get('endDate', '').strip().lower() in ('present', 'current', 'now', '')
+        exp['is_current']  = is_current
+        exp['duration']    = _calc_china_duration(sy, sm, ey, em, is_current)
+        
+        # Employment Type
+        etype_raw = (exp.get('employment_type') or '').lower()
+        if 'freelance' in etype_raw:
+            exp['employment_type_zh'] = '自由职业'
+        elif 'contract' in etype_raw:
+            exp['employment_type_zh'] = '合同工'
+        else:
+            exp['employment_type_zh'] = '全职'
+
+    # ── languages ────────────────────────────────────────────────────────────
+    pct_to_dots = [(90, 5), (70, 4), (50, 3), (30, 2), (0, 1)]
+    level_label_zh = {
+        'native': '母语',
+        'business level': '商务水平',
+        'advanced': '精通',
+        'intermediate': '中级',
+        'basic': '基础',
+        'beginner': '初级'
+    }
+    
+    china_langs = []
+    for lang in context.get('languages', []):
+        if not lang.get('visible', True): continue
+        pct = lang.get('percentage', 50)
+        dots = 1
+        for threshold, d in pct_to_dots:
+            if pct >= threshold:
+                dots = d
+                break
+        raw_level = lang.get('level', '').lower()
+        label = level_label_zh.get(raw_level, lang.get('level', ''))
+        china_langs.append({
+            'name':        lang['name'],
+            'level_dots':  dots,
+            'level_label': label,
+            'cert':        lang.get('cert', ''),
+            'note':        lang.get('note', '')
+        })
+    context['languages'] = china_langs
+
+    # ── skills ───────────────────────────────────────────────────────────────
+    skills_out = []
+    for cat in context.get('skillCategories', []):
+        if not cat.get('visible', True): continue
+        skills_out.append({
+            'name':  cat.get('label', cat.get('name', '')),
+            'items': cat.get('items', []),
+            'level': '精通' if 'expert' in cat.get('level', '').lower() else '熟练'
+        })
+    context['skills'] = skills_out
+
+    # ── awards & certifications ──────────────────────────────────────────────
+    awards = []
+    for ach in context.get('achievements', []):
+        awards.append({
+            'name': ach.get('title', ''),
+            'issuer': ach.get('issuer', ''),
+            'year': ach.get('year', '')
+        })
+    context['awards'] = awards
+    
+    certs = []
+    for c in context.get('certifications', []):
+        certs.append({
+            'name': c.get('name', ''),
+            'issuer': c.get('issuer', ''),
+            'year': c.get('year', '')
+        })
+    context['certifications'] = certs
+
+    # ── projects ─────────────────────────────────────────────────────────────
+    projects_out = []
+    for p in context.get('projects', []):
+        if p.get('hidden'): continue
+        tech = p.get('techStack') or p.get('tech') or ''
+        if isinstance(tech, list): tech = '、'.join(tech)
+        projects_out.append({
+            'name':      p.get('name', ''),
+            'period':    p.get('period', ''),
+            'team_size': p.get('team_size', '个人'),
+            'tech':      tech,
+            'role':      p.get('role', '开发者'),
+            'summary':   p.get('summary') or p.get('description', '')
+        })
+    context['projects'] = projects_out
+
+    # ── research ─────────────────────────────────────────────────────────────
+    research_out = []
+    for r in context.get('research', []):
+        research_out.append({
+            'title': r.get('title', ''),
+            'status': r.get('status', '进行中'),
+            'year': r.get('year', ''),
+            'description': r.get('description', '')
+        })
+    context['research'] = research_out
 
     return context
 
@@ -763,6 +944,9 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
     profile['address_furigana'] = personal.get('address_furigana', '')
     if not profile.get('address') and profile.get('location'):
         profile['address'] = profile.get('location')
+
+    # Consolidate Visa Status for Global Integration
+    personal['visa_status'] = personal.get('visa_status') or personal.get('visa_type') or profile.get('visa_info', {}).get('visaType', '')
 
     # Calculate Japanese Era (Reiwa started May 1, 2019)
     # Simple calculation for current year
@@ -1032,6 +1216,8 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
                 def set_pers(p, k): return lambda t: p.__setitem__(k, t)
                 if pers.get('self_pr_ja'):
                     queue.append({"text": pers['self_pr_ja'], "field_name": "self_pr", "cb": set_pers(pers, 'self_pr_ja')})
+                if pers.get('self_pr_ja_detailed'):
+                    queue.append({"text": pers['self_pr_ja_detailed'], "field_name": "self_pr_detailed", "cb": set_pers(pers, 'self_pr_ja_detailed')})
                 if pers.get('career_summary_ja'):
                     queue.append({"text": pers['career_summary_ja'], "field_name": "career_summary", "cb": set_pers(pers, 'career_summary_ja')})
                 if pers.get('desired_conditions_ja'):
@@ -1044,6 +1230,8 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
                     queue.append({"text": pers['visa_status'], "field_name": "visa_status", "cb": set_pers(pers, 'visa_status')})
                 if pers.get('political_status'):
                     queue.append({"text": pers['political_status'], "field_name": "political_status", "cb": set_pers(pers, 'political_status')})
+                if pers.get('commute_time'):
+                    queue.append({"text": pers['commute_time'], "field_name": "commute_time", "cb": set_pers(pers, 'commute_time')})
             
             if prof.get('address'):
                 queue.append({"text": prof['address'], "field_name": "address", "cb": set_prof(prof, 'address')})
@@ -1055,7 +1243,18 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
             
             # Apply results back
             for i, translated_text in enumerate(translated_results):
-                queue[i]["cb"](translated_text)
+                if return_html:
+                    # Direct-Edit wrapper
+                    orig = queue[i]["text"]
+                    fname = queue[i]["field_name"]
+                    # Use Markup to tell Jinja this is safe HTML
+                    # We escape the text content and the attribute to be safe
+                    safe_translated = html.escape(translated_text)
+                    safe_orig = html.escape(orig)
+                    wrapped = Markup(f'<span class="de-editable" data-field="{fname}" data-orig="{safe_orig}" data-lang="{lang}" contenteditable="false" title="Click to edit translation">{safe_translated}</span>')
+                    queue[i]["cb"](wrapped)
+                else:
+                    queue[i]["cb"](translated_text)
 
     # 4. Process Region-Specific Logic
     if region == 'japan':
@@ -1079,20 +1278,19 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
         html_shokumu = template_shokumu.render(**japan_context)
         
         if return_html:
-            html = html_rirekisho + "\n<div style='page-break-after: always; height: 20px; background: #eee;'></div>\n" + html_shokumu
-            return html.replace("file:///" + TEMPLATES_DIR.replace("\\", "/"), "/static/templates")
-            
-        try:
-            async with pdf_semaphore:
-                pdf_bytes = await asyncio.wait_for(
-                    asyncio.to_thread(_generate_japan_pdfs_sync, html_rirekisho, html_shokumu, pdf_margin),
-                    timeout=60.0
-                )
-        except asyncio.TimeoutError:
-            from fastapi import HTTPException
-            raise HTTPException(status_code=503, detail="Resume generation timed out.")
-        buffer = BytesIO(pdf_bytes)
-        return buffer
+            html_content = html_rirekisho + "\n<div style='page-break-after: always; height: 20px; background: #eee;'></div>\n" + html_shokumu
+        else:
+            try:
+                async with pdf_semaphore:
+                    pdf_bytes = await asyncio.wait_for(
+                        asyncio.to_thread(_generate_japan_pdfs_sync, html_rirekisho, html_shokumu, pdf_margin),
+                        timeout=60.0
+                    )
+            except asyncio.TimeoutError:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=503, detail="Resume generation timed out.")
+            buffer = BytesIO(pdf_bytes)
+            return buffer
 
     elif region == 'korea':
         korea_context = build_korea_context(view_data)
@@ -1111,15 +1309,45 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
         sync_script = """
         <script>
             (function() {
-                window.onscroll = function() {
-                    var percentage = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
-                    window.parent.postMessage({ type: 'scroll', percentage: percentage, sourceId: window.name || location.href }, '*');
-                };
-                window.addEventListener('message', function(event) {
-                    if (event.data && event.data.type === 'scroll' && event.data.sourceId !== (window.name || location.href)) {
-                        var targetScroll = event.data.percentage * (document.documentElement.scrollHeight - window.innerHeight);
-                        window.scrollTo(0, targetScroll);
-                    }
+                // --- DIRECT EDIT HANDLER ---
+                document.querySelectorAll('.de-editable').forEach(el => {
+                    el.addEventListener('blur', function() {
+                        const newText = this.innerText.trim();
+                        const origText = this.getAttribute('data-orig');
+                        const fieldName = this.getAttribute('data-field');
+                        const locale = this.getAttribute('data-lang');
+                        
+                        if (!newText || newText === this.getAttribute('data-last-saved')) return;
+
+                        this.style.backgroundColor = 'rgba(255, 255, 0, 0.2)'; // Saving indicator
+                        
+                        fetch('/api/admin/translations/direct-edit/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                field_name: fieldName,
+                                locale: locale,
+                                original_text: origText,
+                                translated_text: newText
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            this.style.backgroundColor = 'rgba(0, 255, 0, 0.1)'; // Success
+                            this.setAttribute('data-last-saved', newText);
+                            setTimeout(() => { this.style.backgroundColor = ''; }, 1000);
+                        })
+                        .catch(err => {
+                            console.error('Save failed:', err);
+                            this.style.backgroundColor = 'rgba(255, 0, 0, 0.1)'; // Error
+                        });
+                    });
+                    
+                    // Simple styling to indicate it's editable
+                    el.style.borderBottom = '1px dashed #ccc';
+                    el.style.cursor = 'text';
+                    el.style.display = 'inline-block';
+                    el.style.minWidth = '20px';
                 });
             })();
         </script>

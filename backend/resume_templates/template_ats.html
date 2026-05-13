@@ -46,10 +46,10 @@
         <div class="subtitle">{{ profile.role }}</div>
         <div class="contact-info">
             {{ profile.location }}{% if geo_rule.show_dob and personal.dob %} | {{ personal.dob }}{% endif %} | {{ profile.phone }} | {{ profile.email }}
-            {% if geo_rule.show_visa and personal.visa_status %} | Visa: {{ personal.visa_status }}{% endif %}
+            {% if geo_rule.show_visa and personal.visa_status %} | {{ L.visa }}: {{ personal.visa_status }}{% endif %}
             <br>
-            {% if profile.linkedin %}<a href="{{ profile.linkedin }}">LinkedIn</a>{% endif %}
-            {% if profile.github %} | <a href="{{ profile.github }}">GitHub</a>{% endif %}
+            {% if profile.linkedin %}<a href="{{ profile.linkedin }}">{{ profile.linkedin | replace('https://www.', '') | replace('https://', '') }}</a>{% endif %}
+            {% if profile.github %} | <a href="{{ profile.github }}">{{ profile.github | replace('https://github.com/', 'github.com/') | replace('https://', '') }}</a>{% endif %}
         </div>
     </div>
 
@@ -93,7 +93,7 @@
                 <span class="item-title">{{ edu.university }}</span>
                 <span class="item-meta">{{ edu.year }}</span>
             </div>
-            <div class="item-subtitle">{{ edu.degree }}{% if edu.major %} in {{ edu.major }}{% endif %}</div>
+            <div class="item-subtitle">{{ edu.degree }}{% if edu.major %} {{ L.in }} {{ edu.major }}{% endif %}</div>
         </div>
         {% endfor %}
     </div>
@@ -161,7 +161,7 @@
 
     {% if include_cover %}
     <div style="page-break-before: always; break-before: page; padding: 0;">
-        <h1 style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-top: 0; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; font-family: Arial, sans-serif;">Cover Letter</h1>
+        <h1 style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-top: 0; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; font-family: Arial, sans-serif;">{{ L.cover_letter_title }}</h1>
         <div style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
                 <div style="font-size: 14pt; font-weight: bold;">{{ profile.name }}</div>
@@ -175,7 +175,7 @@
 
 
         <div style="margin-bottom: 20px; font-weight: bold;">
-            To the Hiring Manager,
+            {{ L.salutation }}
         </div>
 
         <div style="line-height: 1.8; text-align: justify; white-space: pre-wrap; font-size: 11pt;">
@@ -183,7 +183,7 @@
         </div>
 
         <div style="margin-top: 40px;">
-            <div>Sincerely,</div>
+            <div>{{ L.valediction }}</div>
             <div style="font-weight: bold; margin-top: 10px;">{{ profile.name }}</div>
         </div>
     </div>

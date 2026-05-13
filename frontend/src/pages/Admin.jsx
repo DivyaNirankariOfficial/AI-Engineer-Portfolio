@@ -7,7 +7,7 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 
 import MessageInbox from '../components/MessageInbox';
 import CollectionEditor from '../components/CollectionEditor';
-import { Layout, FileText, BarChart3, ListTree, Settings as SettingsIcon, ShieldCheck, X, Eye, Download, RefreshCw, Maximize2, Copy, CheckCircle2, Info, Languages, Trash2, ShieldAlert } from 'lucide-react';
+import { Layout, FileText, BarChart3, ListTree, Settings as SettingsIcon, ShieldCheck, X, Eye, Download, RefreshCw, Maximize2, Copy, CheckCircle2, Info, Languages, Trash2, ShieldAlert, Sparkles } from 'lucide-react';
 
 const Admin = () => {
     const { isAuthenticated, login, logout, token } = useContext(AdminContext);
@@ -241,6 +241,78 @@ const Admin = () => {
         } catch (err) {
             showToast('AI Action failed: ' + err.message, 'error');
         }
+    };
+
+    const handleSynthesize = async (section, fieldName, originalText, locale) => {
+        try {
+            const res = await fetch('http://localhost:8000/api/admin/translations/synthesize/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    field_name: fieldName,
+                    locale: locale,
+                    original_text: originalText
+                })
+            });
+            const data = await res.json();
+            if (data.synthesized_text) {
+                fetchTranslations();
+                showToast(`Section ${section} Synthesized`);
+                const iframe = document.getElementById('verification-iframe-target');
+                if (iframe) iframe.src = iframe.src.split('&v=')[0] + '&v=' + Date.now();
+            }
+        } catch (err) {
+            showToast('Synthesis failed', 'error');
+        }
+    };
+
+    const getGroupedSections = () => {
+        if (!formData) return {};
+        const sections = {
+            'Summary': [],
+            'Experience': [],
+            'Projects': [],
+            'Education': [],
+            'Skills': [],
+            'Cover Letter': []
+        };
+
+        if (formData.about) formData.about.forEach((t, i) => sections['Summary'].push({ field: 'about', original: t }));
+        
+        if (formData.profile?.personal) {
+            const p = formData.profile.personal;
+            if (p.self_pr_ja) sections['Summary'].push({ field: 'self_pr', original: p.self_pr_ja, sub: 'Short PR' });
+            if (p.self_pr_ja_detailed) sections['Summary'].push({ field: 'self_pr_detailed', original: p.self_pr_ja_detailed, sub: 'Detailed PR' });
+            if (p.career_summary_ja) sections['Summary'].push({ field: 'career_summary', original: p.career_summary_ja, sub: 'Career Summary' });
+        }
+        if (formData.experience) {
+            formData.experience.forEach((exp, i) => {
+                sections['Experience'].push({ field: 'exp_role', original: exp.role, sub: `Role (${exp.company})` });
+                if (exp.bullets) exp.bullets.forEach((b, bi) => sections['Experience'].push({ field: 'exp_bullet', original: b, sub: `Bullet ${bi+1}` }));
+            });
+        }
+        if (formData.projects) {
+            formData.projects.forEach((p, i) => {
+                sections['Projects'].push({ field: 'proj_name', original: p.name, sub: `Name` });
+                sections['Projects'].push({ field: 'proj_summary', original: p.summary, sub: `Summary` });
+            });
+        }
+        if (formData.education) {
+            formData.education.forEach((edu, i) => {
+                sections['Education'].push({ field: 'edu_degree', original: edu.degree, sub: `Degree (${edu.university})` });
+            });
+        }
+        if (formData.skillCategories) {
+            formData.skillCategories.forEach((s, i) => {
+                sections['Skills'].push({ field: 'skill_cat', original: s.label, sub: `Category` });
+            });
+        }
+        if (formData.cover_letter) {
+            ['intro', 'body', 'closing'].forEach(f => {
+                if (formData.cover_letter[f]) sections['Cover Letter'].push({ field: `cl_${f}`, original: formData.cover_letter[f], sub: f.toUpperCase() });
+            });
+        }
+        return sections;
     };
 
 
@@ -1793,7 +1865,7 @@ const Admin = () => {
                                                     if (iframe1) iframe1.src = iframe1.src;
                                                     if (iframe2) iframe2.src = iframe2.src;
                                                 }} className="text-accent hover:rotate-180 transition-all duration-500 flex items-center gap-2 font-mono text-[8px] uppercase tracking-widest">
-                                                    <RefreshCw size={12} /> Sync Both signals
+                                                    <RefreshCw size={12} /> Refresh Previews
                                                 </button>
                                             </div>
                                             
@@ -1841,37 +1913,57 @@ const Admin = () => {
                                                 <span className="font-mono text-[10px] bg-accent/10 text-accent px-2 py-1 uppercase">{verificationLang} Registry</span>
                                             </div>
                                             
-                                            <div className="space-y-6">
-                                                {translations.filter(t => t.locale === verificationLang).length === 0 && (
-                                                    <div className="py-20 text-center border border-dashed border-warmBrown/10 rounded-xl">
-                                                        <Info className="mx-auto text-warmBrown/20 mb-3" />
-                                                        <p className="font-mono text-[10px] text-warmBrown/30 uppercase tracking-widest">No strings detected for this region yet.</p>
-                                                    </div>
-                                                )}
-                                                {translations.filter(t => t.locale === verificationLang).map(t => (
-                                                    <div key={t.id} className={`p-5 border transition-all ${t.is_verified ? 'border-accent/30 bg-accent/5' : 'border-warmBrown/10'}`}>
-                                                        <div className="flex justify-between items-center mb-3">
-                                                            <span className="font-mono text-[8px] uppercase tracking-widest text-warmBrown/40">{t.field_name}</span>
-                                                            {t.is_verified && <span className="font-mono text-[7px] text-accent uppercase font-bold">Verified</span>}
-                                                        </div>
-                                                        <textarea 
-                                                            className="w-full bg-transparent border-none focus:ring-0 font-serif text-sm p-0 mb-4 h-auto min-h-[60px] resize-none"
-                                                            value={t.translated_text}
-                                                            onChange={(e) => {
-                                                                const updated = [...translations];
-                                                                const idx = updated.findIndex(item => item.id === t.id);
-                                                                updated[idx].translated_text = e.target.value;
-                                                                setTranslations(updated);
-                                                            }}
-                                                        />
-                                                        <div className="flex justify-end gap-3">
-                                                            <button 
-                                                                onClick={() => updateTranslation(t.id, t.translated_text, true)}
-                                                                className="px-3 py-1 bg-warmBlack text-ivory font-mono text-[8px] uppercase tracking-widest hover:bg-accent transition-all"
-                                                            >
-                                                                Update Signal
-                                                            </button>
-                                                        </div>
+                                            <div className="space-y-8">
+                                                {Object.entries(getGroupedSections()).map(([secName, items]) => (
+                                                    <div key={secName} className="space-y-4">
+                                                        <h5 className="font-mono text-[9px] uppercase tracking-[0.3em] text-warmBrown/40 border-b border-warmBrown/5 pb-2">{secName}</h5>
+                                                        {items.map((item, idx) => {
+                                                            const trans = translations.find(t => t.field_name === item.field && t.original_text === item.original && t.locale === verificationLang);
+                                                            return (
+                                                                <div key={idx} className={`p-4 border ${trans?.is_verified ? 'border-accent/20 bg-accent/5' : 'border-warmBrown/10'} group transition-all`}>
+                                                                    <div className="flex justify-between items-center mb-2">
+                                                                        <span className="font-mono text-[7px] uppercase text-warmBrown/30">{item.sub || item.field}</span>
+                                                                        {!trans && <span className="font-mono text-[7px] text-amber-600 uppercase italic">English Source</span>}
+                                                                        {trans?.is_verified && <span className="font-mono text-[7px] text-accent uppercase font-bold">Verified</span>}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-warmBrown/60 font-serif italic mb-3 line-clamp-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                                                                        {item.original}
+                                                                    </div>
+                                                                    {trans ? (
+                                                                        <textarea 
+                                                                            className="w-full bg-transparent border-none focus:ring-0 font-serif text-sm p-0 mb-3 h-auto min-h-[40px] resize-none"
+                                                                            value={trans.translated_text}
+                                                                            onChange={(e) => {
+                                                                                const updated = [...translations];
+                                                                                const tIdx = updated.findIndex(t => t.id === trans.id);
+                                                                                updated[tIdx].translated_text = e.target.value;
+                                                                                setTranslations(updated);
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="py-4 text-center bg-warmBrown/5 border border-dashed border-warmBrown/10">
+                                                                            <p className="font-mono text-[8px] text-warmBrown/30 uppercase">Awaiting Alignment</p>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex justify-end gap-2">
+                                                                        {trans && (
+                                                                            <button 
+                                                                                onClick={() => updateTranslation(trans.id, trans.translated_text, true)}
+                                                                                className="px-3 py-1 bg-warmBlack text-ivory font-mono text-[7px] uppercase tracking-widest hover:bg-accent transition-all"
+                                                                            >
+                                                                                Verify
+                                                                            </button>
+                                                                        )}
+                                                                        <button 
+                                                                            onClick={() => handleSynthesize(secName, item.field, item.original, verificationLang)}
+                                                                            className="px-3 py-1 border border-accent/30 text-accent font-mono text-[7px] uppercase tracking-widest hover:bg-accent hover:text-white transition-all flex items-center gap-1"
+                                                                        >
+                                                                            <Sparkles size={8} /> {trans ? 'Re-Synthesize' : 'Synthesize'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 ))}
                                             </div>

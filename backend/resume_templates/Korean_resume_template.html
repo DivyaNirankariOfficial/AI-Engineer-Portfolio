@@ -311,11 +311,11 @@
             <div class="header-left">
                 <div class="name-block">{{ profile.name }}</div>
                 <div class="pill-container">
-                    <span class="tag-pill">🌐 해외 거주</span>
+                    <span class="tag-pill">🌐 {{ '해외 거주' if L.lang == 'ko' else 'Overseas' }}</span>
                     {% if personal.korean_level %}
                     <span class="tag-pill">🗣 한국어 {{ personal.korean_level }}</span>
                     {% endif %}
-                    {% if personal.visa_type %}
+                    {% if geo_rule.show_visa and personal.visa_type %}
                     <span class="tag-pill">🛂 {{ personal.visa_type }}</span>
                     {% endif %}
                 </div>
@@ -328,15 +328,15 @@
 
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="info-label">이메일</span>
+                        <span class="info-label">{{ L.email }}</span>
                         <span class="info-value">{{ profile.email }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">연락처</span>
+                        <span class="info-label">{{ L.phone }}</span>
                         <span class="info-value">{{ profile.phone }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">주소</span>
+                        <span class="info-label">{{ L.address }}</span>
                         <span class="info-value">{{ profile.address }}</span>
                     </div>
                     {% if profile.github %}
@@ -359,14 +359,14 @@
                     {% if profile.photo %}
                     <img src="{{ profile.photo }}" alt="Profile Photo">
                     {% else %}
-                    <div style="font-size:8pt; color:#999; text-align:center;">PHOTO</div>
+                    <div style="font-size:7pt; color:#555; text-align:center;">PHOTO</div>
                     {% endif %}
                 </div>
             </div>
         </div>
 
         <!-- 간단 소개 -->
-        <div class="section-title">간단 소개 (Brief Introduction)</div>
+        <div class="section-title">{{ L.summary }}</div>
         <div class="intro-text">{{ personal.summary }}</div>
 
         <!-- 학력 -->
