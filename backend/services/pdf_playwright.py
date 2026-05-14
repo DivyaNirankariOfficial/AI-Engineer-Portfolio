@@ -236,6 +236,7 @@ def build_japan_context(data: dict) -> dict:
     """Builds context for Japanese resume template"""
     import copy
     context = copy.deepcopy(data)
+    context['L'] = get_labels(context.get('lang', 'ja'))
     
     if "profile" in context and "personal" in context["profile"]:
         p = context["profile"]
@@ -252,10 +253,11 @@ def build_japan_context(data: dict) -> dict:
         p["address_furigana"] = p["personal"].get("address_furigana", "")
         
         gender = p["personal"].get("gender", "").lower()
+        L = get_labels(context.get('lang', 'ja'))
         if gender.startswith("m"):
-            p["gender_ja"] = "男"
+            p["gender_ja"] = L.get("male", "Male")
         elif gender.startswith("f"):
-            p["gender_ja"] = "女"
+            p["gender_ja"] = L.get("female", "Female")
         else:
             p["gender_ja"] = ""
             
@@ -311,16 +313,22 @@ def build_japan_context(data: dict) -> dict:
         if "bullets" not in exp or not exp["bullets"]:
             exp["bullets"] = [exp.get("description", "")]
             
+        # Standardize resign reason for Japan
+        if exp.get("is_current") is False:
+            L = get_labels(context.get('lang', 'ja'))
+            exp["resign_reason_ja"] = exp.get("resign_reason_ja") or L.get("resignation", "Resigned for personal reasons")
+            
     # Map skillCategories to skills for Shokumu-keirekisho
     if "skillCategories" in context:
         new_skills = []
+        L = get_labels(context.get('lang', 'ja'))
         for cat in context["skillCategories"]:
             if cat.get("visible", True):
                 new_skills.append({
                     "name": cat.get("label", ""),
                     "items": cat.get("items", []),
                     "years": cat.get("years", "—"),
-                    "level": cat.get("level", "実務経験")
+                    "level": cat.get("level") or L.get("proficiency_label", "Proficient")
                 })
         context["skills"] = new_skills
         
@@ -351,24 +359,26 @@ def build_japan_context(data: dict) -> dict:
     return context
 
 
-def _calc_korea_duration(start_year: int, start_month: int, end_year: int, end_month: int, is_current: bool = False) -> str:
-    """Returns Korean duration string. Adds 1 month for inclusive counting. Adds '약' for current roles."""
+def _calc_korea_duration(start_year: int, start_month: int, end_year: int, end_month: int, is_current: bool = False, lang: str = 'ko') -> str:
+    """Returns localized duration string. Adds 1 month for inclusive counting."""
     total_months = (end_year - start_year) * 12 + (end_month - start_month) + 1
     if total_months < 0:
         total_months = 0
     years = total_months // 12
     months = total_months % 12
     
-    prefix = "약 " if is_current else ""
+    is_en = lang == 'en'
+    prefix = ("Approx. " if is_en else "약 ") if is_current else ""
+    year_label = " yr" if is_en else "&#45380;"
+    month_label = " mo" if is_en else "&#44060;&#50900;"
     
-    # 년: &#45380; | 개월: &#44060;&#50900;
     if years > 0 and months > 0:
-        return f"({prefix}{years}&#45380; {months}&#44060;&#50900;)"
+        return f"({prefix}{years}{year_label} {months}{month_label})"
     elif years > 0:
-        return f"({prefix}{years}&#45380;)"
+        return f"({prefix}{years}{year_label})"
     elif months > 0:
-        return f"({prefix}{months}&#44060;&#50900;)"
-    return "(1&#44060;&#50900;)"
+        return f"({prefix}{months}{month_label})"
+    return f"(1{month_label})"
 
 
 def build_korea_context(data: dict) -> dict:
@@ -376,6 +386,7 @@ def build_korea_context(data: dict) -> dict:
     import copy
     from datetime import datetime
     context = copy.deepcopy(data)
+    context['L'] = get_labels(context.get('lang', 'ko'))
     today = datetime.today()
 
     profile = context.get('profile', {})
@@ -383,8 +394,12 @@ def build_korea_context(data: dict) -> dict:
     if summary:
         profile['summary'] = summary.replace("Japanese", "Korean").replace("Japan's", "Korea's").replace("Japan", "Korea")
 
-    # ── generated_date in Korean format ──────────────────────────────────────
-    context['generated_date'] = f"{today.year}년 {today.month}월 {today.day}일"
+    # ── generated_date in localized format ──────────────────────────────────────
+    is_ko = context.get('lang') == 'ko'
+    if is_ko:
+        context['generated_date'] = f"{today.year}년 {today.month}월 {today.day}일"
+    else:
+        context['generated_date'] = today.strftime('%Y/%m/%d')
 
     # ── profile.address alias ─────────────────────────────────────────────────
     if not profile.get('address'):
@@ -429,8 +444,17 @@ def build_korea_context(data: dict) -> dict:
     else:
         nationality_display = nationality_en
 
+    is_en = context.get('lang') == 'en'
+    gender_raw = raw_personal.get('gender', '').lower()
+    if gender_raw.startswith('f'):
+        gender_display = 'Female' if is_en else '여성'
+    elif gender_raw.startswith('m'):
+        gender_display = 'Male' if is_en else '남성'
+    else:
+        gender_display = ''
+
     context['personal'] = {
-        'gender':        raw_personal.get('gender', ''),
+        'gender':        gender_display,
         'dob':           dob_formatted,
         'nationality':   nationality_display,
         'korean_level':  korean_level,
@@ -489,7 +513,7 @@ def build_korea_context(data: dict) -> dict:
         edu['end_month']   = 3
         edu['is_current']  = is_current
         edu['start']       = (sy, 4)
-        edu['duration']    = _calc_korea_duration(sy, 4, ey, 3, is_current)
+        edu['duration']    = _calc_korea_duration(sy, 4, ey, 3, is_current, context.get('lang'))
 
         if 'university' in edu and 'institution' not in edu:
             edu['institution'] = edu['university']
@@ -529,18 +553,23 @@ def build_korea_context(data: dict) -> dict:
         exp['start']       = (sy, sm)
         is_current = exp.get('endDate', '').strip().lower() in ('present', 'current', 'now', '')
         exp['is_current']  = is_current
-        exp['duration']    = _calc_korea_duration(sy, sm, ey, em, is_current)
+        exp['duration']    = _calc_korea_duration(sy, sm, ey, em, is_current, context.get('lang'))
 
         # employment_type_ko
+        is_en = context.get('lang') == 'en'
         etype_raw = (exp.get('employment_type_ja') or exp.get('employment_type') or '').strip().lower()
         if 'freelance' in exp.get('company', '').lower() or 'freelance' in exp.get('role', '').lower() or 'freelance' in etype_raw:
-            exp['employment_type_ko'] = '프리랜서'
+            exp['employment_type_ko'] = 'Freelance' if is_en else '프리랜서'
         elif etype_raw in ('正社員', 'full-time', 'fulltime', 'permanent'):
-            exp['employment_type_ko'] = '정규직'
+            exp['employment_type_ko'] = 'Full-time' if is_en else '정규직'
         elif etype_raw in ('契約社員', 'contract'):
-            exp['employment_type_ko'] = '계약직'
+            exp['employment_type_ko'] = 'Contract' if is_en else '계약직'
         else:
-            exp['employment_type_ko'] = '정규직'
+            exp['employment_type_ko'] = 'Full-time' if is_en else '정규직'
+
+        # status labels
+        L = get_labels(context.get('lang', 'ko'))
+        exp['status_label'] = (L.get('current', 'Current') if exp['is_current'] else L.get('left', 'Resigned')) if context.get('lang') != 'ko' else ('재직중' if exp['is_current'] else '퇴직')
 
         if not exp.get('bullets'):
             exp['bullets'] = [exp['description']] if exp.get('description') else []
@@ -663,33 +692,39 @@ def build_korea_context(data: dict) -> dict:
 
     # ── cover_letter — defaults ───────────────────────────────────────────────
     cl = context.get('cover_letter', {})
+    is_ko = context.get('lang') == 'ko'
+    
     context['cover_letter'] = {
-        'growth_background':   cl.get('growth_background',   '[Please write your background and growth]'),
-        'strengths_weaknesses': cl.get('strengths_weaknesses', '[Please write your strengths and weaknesses]'),
-        'motivation':          cl.get('motivation',           '[Please write your reason for applying]'),
-        'goals_after_joining': cl.get('goals_after_joining',  '[Please write your goals after joining]'),
+        'growth_background':   cl.get('growth_background',   '[성장과정 내용을 입력해주세요]' if is_ko else '[Please write your background and growth]'),
+        'strengths_weaknesses': cl.get('strengths_weaknesses', '[성격의 장단점 내용을 입력해주세요]' if is_ko else '[Please write your strengths and weaknesses]'),
+        'motivation':          cl.get('motivation',           '[지원동기 내용을 입력해주세요]' if is_ko else '[Please write your reason for applying]'),
+        'goals_after_joining': cl.get('goals_after_joining',  '[입사 후 포부 내용을 입력해주세요]' if is_ko else '[Please write your goals after joining]'),
     }
 
     return context
 
 
-def _calc_china_duration(start_year: int, start_month: int, end_year: int, end_month: int, is_current: bool = False) -> str:
-    """Returns Chinese duration string (e.g., '1年3个月')."""
+def _calc_china_duration(start_year: int, start_month: int, end_year: int, end_month: int, is_current: bool = False, lang: str = 'zh') -> str:
+    """Returns localized duration string (e.g., '1年3个月' or '1 yr 3 mo')."""
     total_months = (end_year - start_year) * 12 + (end_month - start_month) + 1
     if total_months < 0:
         total_months = 0
     years = total_months // 12
     months = total_months % 12
     
+    is_en = lang == 'en'
+    y_label = " yr" if is_en else "年"
+    m_label = " mo" if is_en else "个月"
+    
     parts = []
     if years > 0:
-        parts.append(f"{years}年")
+        parts.append(f"{years}{y_label}")
     if months > 0:
-        parts.append(f"{months}个月")
+        parts.append(f"{months}{m_label}")
     
     if not parts:
-        return "1个月"
-    return "".join(parts)
+        return f"1{m_label}"
+    return (" " if is_en else "").join(parts)
 
 
 def build_china_context(data: dict) -> dict:
@@ -697,12 +732,17 @@ def build_china_context(data: dict) -> dict:
     import copy
     from datetime import datetime
     context = copy.deepcopy(data)
+    context['L'] = get_labels(context.get('lang', 'zh'))
     today = datetime.today()
 
     profile = context.get('profile', {})
     
-    # ── generated_date in Chinese format ─────────────────────────────────────
-    context['generated_date'] = f"{today.year}年{today.month}月{today.day}日"
+    # ── generated_date in localized format ─────────────────────────────────────
+    is_zh = context.get('lang') == 'zh'
+    if is_zh:
+        context['generated_date'] = f"{today.year}年{today.month}月{today.day}日"
+    else:
+        context['generated_date'] = today.strftime('%Y/%m/%d')
 
     # ── profile.address alias ─────────────────────────────────────────────────
     if not profile.get('address'):
@@ -718,7 +758,10 @@ def build_china_context(data: dict) -> dict:
         for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"):
             try:
                 dob = datetime.strptime(dob_raw, fmt)
-                dob_zh = dob.strftime('%Y年%m月')
+                if context.get('lang') == 'zh':
+                    dob_zh = dob.strftime('%Y年%m月')
+                else:
+                    dob_zh = dob.strftime('%Y/%m')
                 break
             except ValueError:
                 continue
@@ -733,7 +776,11 @@ def build_china_context(data: dict) -> dict:
         'hobbies':       raw_personal.get('hobbies', ''),
     }
 
-    # ── connections ──────────────────────────────────────────────────────────
+    # ── Summary Region Adaptation ────────────────────────────────────────────
+    summary = profile.get('summary', '')
+    if summary:
+        profile['summary'] = summary.replace("Japan's", "China's").replace("Japanese", "Chinese").replace("Japan", "China")
+
     connections = context.get('connections', [])
     filtered = [
         c for c in connections
@@ -755,11 +802,14 @@ def build_china_context(data: dict) -> dict:
             sy, ey, is_current = 2000, 2004, False
 
         edu['start_year']  = sy
-        edu['start_month'] = 9 # Standard China start
+        edu['start_month'] = 4 # Indian standard (April)
         edu['end_year']    = ey
-        edu['end_month']   = 6 # Standard China end
-        edu['duration']    = _calc_china_duration(sy, 9, ey, 6, is_current)
-        edu['start']       = (sy, 9)
+        edu['end_month']   = 3 # Indian standard (March)
+        edu['duration']    = _calc_china_duration(sy, 4, ey, 3, is_current, context.get('lang'))
+        edu['start']       = (sy, 4)
+
+        if 'university' in edu and 'institution' not in edu:
+            edu['institution'] = edu['university']
 
     # ── experience ────────────────────────────────────────────────────────────
     for exp in context.get('experience', []):
@@ -772,16 +822,21 @@ def build_china_context(data: dict) -> dict:
         exp['start']       = (sy, sm)
         is_current = exp.get('endDate', '').strip().lower() in ('present', 'current', 'now', '')
         exp['is_current']  = is_current
-        exp['duration']    = _calc_china_duration(sy, sm, ey, em, is_current)
+        exp['duration']    = _calc_china_duration(sy, sm, ey, em, is_current, context.get('lang'))
         
         # Employment Type
+        is_en = context.get('lang') == 'en'
         etype_raw = (exp.get('employment_type') or '').lower()
         if 'freelance' in etype_raw:
-            exp['employment_type_zh'] = '自由职业'
+            exp['employment_type_zh'] = 'Freelance' if is_en else '自由职业'
         elif 'contract' in etype_raw:
-            exp['employment_type_zh'] = '合同工'
+            exp['employment_type_zh'] = 'Contract' if is_en else '合同工'
         else:
-            exp['employment_type_zh'] = '全职'
+            exp['employment_type_zh'] = 'Full-time' if is_en else '全职'
+
+        # status labels
+        L = get_labels(context.get('lang', 'zh'))
+        exp['status_label'] = (L.get('current', 'Current') if exp['is_current'] else L.get('left', 'Resigned'))
 
     # ── languages ────────────────────────────────────────────────────────────
     pct_to_dots = [(90, 5), (70, 4), (50, 3), (30, 2), (0, 1)]
@@ -816,12 +871,24 @@ def build_china_context(data: dict) -> dict:
 
     # ── skills ───────────────────────────────────────────────────────────────
     skills_out = []
+    pct_to_dots = [(90, 5), (70, 4), (50, 3), (30, 2), (0, 1)]
     for cat in context.get('skillCategories', []):
         if not cat.get('visible', True): continue
+        
+        # Calculate level dots
+        pct = cat.get('percentage', 80)
+        dots = 4
+        for threshold, d in pct_to_dots:
+            if pct >= threshold:
+                dots = d
+                break
+                
+        is_en = context.get('lang') == 'en'
         skills_out.append({
             'name':  cat.get('label', cat.get('name', '')),
             'items': cat.get('items', []),
-            'level': '精通' if 'expert' in cat.get('level', '').lower() else '熟练'
+            'level': (L.get('proficient_label', 'Proficient') if dots >= 5 else (L.get('proficient_label', 'Experienced') if dots >= 3 else 'Learner')) if is_en else ('精通' if dots >= 5 else '熟练'),
+            'level_dots': dots
         })
     context['skills'] = skills_out
 
@@ -850,12 +917,13 @@ def build_china_context(data: dict) -> dict:
         if p.get('hidden'): continue
         tech = p.get('techStack') or p.get('tech') or ''
         if isinstance(tech, list): tech = '、'.join(tech)
+        is_en = context.get('lang') == 'en'
         projects_out.append({
             'name':      p.get('name', ''),
             'period':    p.get('period', ''),
-            'team_size': p.get('team_size', '个人'),
+            'team_size': p.get('team_size', L.get('individual', 'Individual') if is_en else '个人'),
             'tech':      tech,
-            'role':      p.get('role', '开发者'),
+            'role':      p.get('role', L.get('developer', 'Developer') if is_en else '开发者'),
             'summary':   p.get('summary') or p.get('description', '')
         })
     context['projects'] = projects_out
@@ -865,8 +933,8 @@ def build_china_context(data: dict) -> dict:
     for r in context.get('research', []):
         research_out.append({
             'title': r.get('title', ''),
-            'status': r.get('status', '进行中'),
-            'year': r.get('year', ''),
+            'status': r.get('status', L.get('writing_status', 'Writing') if is_en else '进行中'),
+            'year': r.get('year', '2026'),
             'description': r.get('description', '')
         })
     context['research'] = research_out
@@ -939,6 +1007,16 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
         except Exception:
             pass
             
+    # 1.5 Global Summary Neutralization
+    summary = profile.get('summary', '')
+    if summary:
+        if region == 'korea':
+            profile['summary'] = summary.replace("Japanese", "Korean").replace("Japan's", "Korea's").replace("Japan", "Korea")
+        elif region == 'china':
+            profile['summary'] = summary.replace("Japanese", "Chinese").replace("Japan's", "China's").replace("Japan", "China")
+        elif region in ('international', 'academic', 'ats_usa', 'ats_uk'):
+            profile['summary'] = summary.replace("Japan's", "global").replace("Japanese", "professional").replace("Japan", "the industry")
+
     # Map furigana to profile so template can access them easily
     profile['name_furigana'] = personal.get('name_furigana', '')
     profile['address_furigana'] = personal.get('address_furigana', '')
@@ -1083,6 +1161,13 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
         pass
 
     def process_international(vd):
+        # ── Summary Region Adaptation ────────────────────────────────────────────
+        profile = vd.get('profile', {})
+        summary = profile.get('summary', '')
+        if summary:
+            # Replace Japan-specific mentions with neutral global language
+            profile['summary'] = summary.replace("Japan's", "global").replace("Japanese", "advanced").replace("Japan", "the global")
+
         # Merge research and researchInterests for ATS
         res = vd.get('research', [])
         interests = vd.get('researchInterests', [])

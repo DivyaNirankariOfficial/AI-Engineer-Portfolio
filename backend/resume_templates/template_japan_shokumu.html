@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>職務経歴書 - {{ profile.name }}</title>
+<title>{{ L.shokumu_title }} - {{ profile.name }}</title>
 <style>
 /* ============================================================
    PLAYWRIGHT PDF RESET
@@ -201,9 +201,9 @@ p, li { orphans: 3; widows: 3; }
      DOCUMENT HEADER
      ============================================================ -->
 <div class="doc-header">
-  <div class="doc-title">職　務　経　歴　書</div>
+  <div class="doc-title">{{ L.shokumu_title }}</div>
   <div class="doc-meta" style="margin-bottom: 4px;">
-    {{ generated_date }}現在　　氏名：{{ profile.name }}
+    {% if lang == 'en' %}{{ L.as_of }} {{ generated_date }}{% else %}{{ generated_date }}{{ L.as_of }}{% endif %}　　{{ L.name_label | default(L.name) }}{% if lang == 'en' %}: {% else %}：{% endif %}{{ profile.name }}
   </div>
   {% if connections %}
   <div style="font-size: 8pt; color: #555; text-align: right; line-height: 1.4;">
@@ -220,7 +220,7 @@ p, li { orphans: 3; widows: 3; }
      1. 職務要約 — Career Summary
      ============================================================ -->
 <div class="section">
-  <div class="section-title section-header">職務要約</div>
+  <div class="section-title section-header">{{ L.summary }}</div>
   <div class="summary-box">
     {{ personal.career_summary_ja | default(profile.summary) }}
   </div>
@@ -230,21 +230,21 @@ p, li { orphans: 3; widows: 3; }
      2. スキル — Skill Matrix
      ============================================================ -->
 <div class="section">
-  <div class="section-title section-header">スキル・技術</div>
+  <div class="section-title section-header">{{ L.skills }}</div>
   <table class="skill-table">
     <tr>
-      <th>カテゴリー</th>
-      <th>スキル・技術</th>
-      <th>経験年数</th>
-      <th>レベル</th>
+      <th>{{ L.category_label }}</th>
+      <th>{{ L.skills }}</th>
+      <th>{{ L.experience_years_label | default('Years') }}</th>
+      <th>{{ L.proficiency_label }}</th>
     </tr>
     {% if skills %}
       {% for category in skills %}
       <tr>
         <td style="font-weight:bold; white-space:nowrap;">{{ category.name_ja | default(category.name) }}</td>
-        <td>{{ category['items'] | join('、') }}</td>
+        <td>{{ category['items'] | join(' / ' if lang == 'en' else '、') }}</td>
         <td style="text-align:center; white-space:nowrap;">{{ category.years | default('—') }}</td>
-        <td style="text-align:center;">{{ category.level | default('実務経験') }}</td>
+        <td style="text-align:center;">{{ category.level | default(L.proficient_label) }}</td>
       </tr>
       {% endfor %}
     {% endif %}
@@ -255,26 +255,26 @@ p, li { orphans: 3; widows: 3; }
      3. 職務経歴 — Detailed Work History
      ============================================================ -->
 <div class="section">
-  <div class="section-title section-header">職務経歴</div>
+  <div class="section-title section-header">{{ L.experience }}</div>
 
   {% for job in experience | sort(attribute='start') %}
   <div class="job-block">
     <div class="job-header">
       <div class="job-company">{{ job.company }}</div>
       <div class="job-period">
-        {{ job.start_year }}年{{ job.start_month }}月 〜
-        {% if job.is_current %}現在{% else %}{{ job.end_year }}年{{ job.end_month }}月{% endif %}
+        {{ job.start_year }}{{ L.year_char }}{{ job.start_month }}{{ L.month_char }} {% if lang == 'en' %}-{% else %}〜{% endif %}
+        {% if job.is_current %}{{ L.as_of }}{% else %}{{ job.end_year }}{{ L.year_char }}{{ job.end_month }}{{ L.month_char }}{% endif %}
       </div>
     </div>
     <div class="job-meta">
-      役職：{{ job.role }}　　
-      雇用形態：{% if job.employment_type_ja %}{{ job.employment_type_ja }}{% elif 'freelance' in job.company|lower or 'freelance' in job.role|lower %}フリーランス{% else %}正社員{% endif %}　　
-      {% if job.team_size %}チーム規模：{{ job.team_size }}名{% endif %}
+      {{ L.role_label }}{% if lang == 'en' %}: {% else %}：{% endif %}{{ job.role }}　　
+      {{ L.type_label }}{% if lang == 'en' %}: {% else %}：{% endif %}{{ job.employment_type_ko }}　　
+      {% if job.team_size %}{{ L.team_size_label }}{% if lang == 'en' %}: {% else %}：{% endif %}{{ job.team_size }}{{ L.people_count | default('') }}{% endif %}
     </div>
 
     {% set bullet_list = job.bullets if job.bullets else ([job.description] if job.description else []) %}
     {% if bullet_list %}
-    <div class="subsection-title">業務内容</div>
+    <div class="subsection-title">{{ L.job_duties_label }}</div>
     <ul class="job-bullets">
       {% for bullet in bullet_list %}
       <li>{{ bullet }}</li>
@@ -283,7 +283,7 @@ p, li { orphans: 3; widows: 3; }
     {% endif %}
 
     {% if job.achievements %}
-    <div class="subsection-title">実績・成果</div>
+    <div class="subsection-title">{{ L.achievements_label }}</div>
     <ul class="job-bullets">
       {% for item in job.achievements %}
       <li>{{ item }}</li>
@@ -299,31 +299,31 @@ p, li { orphans: 3; widows: 3; }
      ============================================================ -->
 {% if projects %}
 <div class="section">
-  <div class="section-title section-header">プロジェクト詳細</div>
+  <div class="section-title section-header">{{ L.projects }}</div>
 
   {% for project in projects %}
   <div class="project-block">
     <table class="project-table">
       <tr>
-        <th>プロジェクト名</th>
+        <th>{{ L.proj_name_label }}</th>
         <td colspan="3" style="font-weight:bold;">{{ project.name }}</td>
       </tr>
       <tr>
-        <th>期間</th>
+        <th>{{ L.period_label }}</th>
         <td>{{ project.period | default('—') }}</td>
-        <th style="width:18%;">チーム規模</th>
-        <td>{{ project.team_size | default('個人') }}</td>
+        <th style="width:18%;">{{ L.team_size_label }}</th>
+        <td>{{ project.team_size | default(L.individual) }}</td>
       </tr>
       <tr>
-        <th>使用技術</th>
+        <th>{{ L.tech_stack_label }}</th>
         <td colspan="3">{{ project.techStack | default(project.tech, true) }}</td>
       </tr>
       <tr>
-        <th>役割・担当</th>
-        <td colspan="3">{{ project.role | default('開発者') }}</td>
+        <th>{{ L.role_label }}・{{ L.job_duties_label }}</th>
+        <td colspan="3">{{ project.role | default(L.developer) }}</td>
       </tr>
       <tr>
-        <th>概要・成果</th>
+        <th>{{ L.outcomes_label }}</th>
         <td colspan="3" style="line-height:1.7;">{{ project.summary | default(project.description, true) }}</td>
       </tr>
     </table>
@@ -337,12 +337,12 @@ p, li { orphans: 3; widows: 3; }
      ============================================================ -->
 {% if research %}
 <div class="section">
-  <div class="section-title section-header">研究・論文</div>
+  <div class="section-title section-header">{{ L.research }}</div>
   {% for item in research %}
   <div class="job-block">
     <div style="font-weight:bold; font-size:9.5pt;">{{ item.title }}</div>
     <div style="font-size:8pt; color:#555; margin:2px 0;">
-      {{ item.status | default('執筆中') }}　{{ item.year }}年
+      {{ item.status | default(L.writing_status) }}　{{ item.year }}{{ L.year_char }}
     </div>
     <div style="font-size:9pt; line-height:1.6;">{{ item.description }}</div>
   </div>
@@ -354,7 +354,7 @@ p, li { orphans: 3; widows: 3; }
      6. 自己PR — Self PR (detailed)
      ============================================================ -->
 <div class="section">
-  <div class="section-title section-header">自己PR</div>
+  <div class="section-title section-header">{{ L.summary }} (Detailed)</div>
   <div class="self-pr-box">
     {{ personal.self_pr_ja_detailed | default(personal.self_pr_ja) }}
   </div>
@@ -377,11 +377,11 @@ p, li { orphans: 3; widows: 3; }
   </div>
   
   <div style="margin-bottom: 5mm; font-size: 12pt; font-weight: bold;">
-    採用担当者様
+    {{ L.salutation | default('採用担当者様') }}
   </div>
 
   <div style="text-align: center; margin-bottom: 20mm; font-size: 14pt; font-weight: bold; border-bottom: 2px solid #000; display: inline-block; width: 100%; padding-bottom: 8px; text-transform: uppercase;">
-    応募書類の送付につきまして (Application for Position)
+    {{ L.cl_header | default('応募書類の送付につきまして (Application for Position)') }}
   </div>
 
   <div style="line-height: 2.0; font-size: 11pt; text-align: justify; white-space: pre-wrap; margin-bottom: 30mm;">
@@ -392,8 +392,8 @@ p, li { orphans: 3; widows: 3; }
     〒{{ profile.postal_code | default('000-0000') }}<br>
     {{ profile.address }}<br>
     <span style="font-size: 14pt; font-weight: bold;">{{ profile.name }}</span><br>
-    電話: {{ profile.phone }}<br>
-    Email: {{ profile.email }}
+    {{ L.phone }}: {{ profile.phone }}<br>
+    {{ L.email }}: {{ profile.email }}
   </div>
 </div>
 {% endif %}

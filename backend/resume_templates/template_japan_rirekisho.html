@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>履歴書 - {{ profile.name }}</title>
+  <title>{{ L.rirekisho_title }} - {{ profile.name }}</title>
   <style>
     /* ============================================================
    PLAYWRIGHT PDF RESET — required for correct rendering
@@ -267,10 +267,11 @@
      ============================================================ -->
   <div class="page">
 
-    <!-- HEADER -->
     <div class="doc-header">
-      <div class="doc-title">履　歴　書</div>
-      <div class="doc-date">{{ generated_date }}現在</div>
+      <div class="doc-title">{{ L.rirekisho_title }}</div>
+      <div class="doc-date">
+        {% if lang == 'en' %}{{ L.as_of }} {{ generated_date }}{% else %}{{ generated_date }}{{ L.as_of }}{% endif %}
+      </div>
     </div>
 
     <!-- PERSONAL INFO + PHOTO -->
@@ -278,9 +279,9 @@
       <tr>
         <!-- LEFT: furigana + name -->
         <td style="width:55%; border-bottom:none; padding-bottom:0;">
-          <div style="font-size:7pt; color:#555;">ふりがな</div>
+          <div style="font-size:7pt; color:#555;">{{ L.phonetic }}</div>
           <div style="font-size:8pt; margin-bottom:2px;">{{ profile.name_furigana }}</div>
-          <div style="font-size:7pt; color:#555;">氏　名</div>
+          <div style="font-size:7pt; color:#555;">{{ L.name_label }}</div>
           <div style="font-size:13pt; font-weight:bold; letter-spacing:1px;">{{ profile.name }}</div>
         </td>
         <!-- RIGHT: photo -->
@@ -290,7 +291,7 @@
             {% if profile.photo %}
             <img src="{{ profile.photo }}" alt="photo">
             {% else %}
-            <div class="photo-placeholder">写真<br>（実際の<br>写真を<br>貼付）</div>
+            <div class="photo-placeholder">{{ L.photo }}</div>
             {% endif %}
           </div>
         </td>
@@ -302,19 +303,23 @@
             <tr>
               <td style="border:none; width:22%; padding:1px 2px;">
                 <div style="font-size:7pt; color:#555;">{{ L.nationality }}</div>
-                <div style="font-size:8.5pt;">{{ personal.nationality_ja | default('インド') }}</div>
+                <div style="font-size:8.5pt;">{{ personal.nationality_ja | default('India' if lang == 'en' else 'インド') }}</div>
               </td>
               <td style="border-left:0.75pt solid #000; padding:1px 4px; width:40%;">
                 <div style="font-size:7pt; color:#555;">{{ L.dob }}（{{ L.age }}）</div>
-                <div style="font-size:8.5pt;">{{ personal.japanese_dob_era }}（満{{ personal.age }}歳）</div>
+                <div style="font-size:8.5pt;">{{ personal.japanese_dob_era }}（{{ L.age }}{{ personal.age }}{{ L.year }}）</div>
               </td>
               <td style="border-left:0.75pt solid #000; padding:1px 4px; width:18%;">
                 <div style="font-size:7pt; color:#555;">{{ L.gender }}</div>
                 <div style="font-size:8.5pt;">
-                  {% if personal.gender|lower == 'female' %}
-                  男・<span class="selected-option">女</span>
+                  {% if lang == 'ja' %}
+                    {% if personal.gender|lower == 'female' %}
+                    男・<span class="selected-option">女</span>
+                    {% else %}
+                    <span class="selected-option">男</span>・女
+                    {% endif %}
                   {% else %}
-                  <span class="selected-option">男</span>・女
+                    <span class="selected-option">{{ personal.gender_ja }}</span>
                   {% endif %}
                 </div>
               </td>
@@ -330,7 +335,7 @@
       </tr>
       <tr>
         <td style="border-top: none; border-bottom:none;">
-          <div style="font-size:7pt; color:#555;">ふりがな</div>
+          <div style="font-size:7pt; color:#555;">{{ L.phonetic }}</div>
           <div style="font-size:8pt;">{{ profile.address_furigana }}</div>
           <div style="font-size:7pt; color:#555; margin-top:1px;">{{ L.address }}</div>
           <div style="font-size:9pt;">{{ profile.address }}</div>
@@ -357,13 +362,13 @@
           <table style="width:100%; border:none; height:100%;">
             <tr>
               <td style="border:none; width:70%; padding:2px 3px;">
-                <div style="font-size:7pt; color:#555;">ふりがな</div>
-                <div style="font-size:7.5pt; color:#888; font-style:italic;">（現住所以外に連絡を希望する場合のみ記入）</div>
-                <div style="font-size:7pt; color:#555; margin-top:1px;">連絡先　〒</div>
-                <div style="font-size:8.5pt; color:#888;">同上</div>
+                <div style="font-size:7pt; color:#555;">{{ L.phonetic }}</div>
+                <div style="font-size:7.5pt; color:#888; font-style:italic;">{% if lang == 'ja' %}（現住所以外に連絡を希望する場合のみ記入）{% endif %}</div>
+                <div style="font-size:7pt; color:#555; margin-top:1px;">{{ L.contact_alt_label | default(L.contact_alt) }}{% if lang == 'ja' %}　〒{% endif %}</div>
+                <div style="font-size:8.5pt; color:#888;">{{ L.same_as_above }}</div>
               </td>
               <td style="border-left:0.75pt solid #000; padding:2px 3px; width:30%;">
-                <div style="font-size:7pt; color:#555;">電話</div>
+                <div style="font-size:7pt; color:#555;">{{ L.phone }}</div>
                 <div style="font-size:9pt; margin-top:8px;">{{ profile.alternate_phone }}</div>
               </td>
             </tr>
@@ -375,16 +380,16 @@
     <!-- EDUCATION & WORK HISTORY — combined table -->
     <table style="margin-top:0; border-top: none;">
       <tr>
-        <th class="year-col label-cell">年</th>
-        <th class="month-col label-cell">月</th>
-        <th class="label-cell" style="text-align:center;">学　歴・職　歴（各別にまとめて書く）</th>
+        <th class="year-col label-cell">{{ L.year }}</th>
+        <th class="month-col label-cell">{{ L.month }}</th>
+        <th class="label-cell" style="text-align:center;">{{ L.education }} / {{ L.experience }}</th>
       </tr>
 
       <!-- 学歴 label row -->
       <tr>
         <td class="year-col"></td>
         <td class="month-col"></td>
-        <td class="history-section-label">学　歴</td>
+        <td class="history-section-label">{{ L.education }}</td>
       </tr>
 
       <!-- Education entries — oldest first, each with 入学 and 卒業 -->
@@ -392,12 +397,12 @@
       <tr class="history-row no-break">
         <td class="year-col">{{ edu.start_year }}</td>
         <td class="month-col">{{ edu.start_month }}</td>
-        <td>{{ edu.institution }} {{ edu.degree if edu.degree else '' }}　入学</td>
+        <td>{{ edu.institution }} {{ edu.degree if edu.degree else '' }}　{{ L.entry }}</td>
       </tr>
       <tr class="history-row no-break">
         <td class="year-col">{{ edu.end_year }}</td>
         <td class="month-col">{{ edu.end_month }}</td>
-        <td>{{ edu.institution }} {{ edu.degree if edu.degree else '' }}　卒業</td>
+        <td>{{ edu.institution }} {{ edu.degree if edu.degree else '' }}{% if lang == 'ja' %}　{% else %} - {% endif %}{{ L.graduation }}</td>
       </tr>
       {% endfor %}
 
@@ -405,7 +410,7 @@
       <tr>
         <td class="year-col"></td>
         <td class="month-col"></td>
-        <td class="history-section-label">職　歴</td>
+        <td class="history-section-label">{{ L.experience }}</td>
       </tr>
 
       <!-- Work history entries — oldest first -->
@@ -413,7 +418,7 @@
       <tr class="history-row no-break">
         <td class="year-col">{{ job.start_year }}</td>
         <td class="month-col">{{ job.start_month }}</td>
-        <td>{{ job.company }}　入社</td>
+        <td>{{ job.company }}{% if lang == 'ja' %}　{% else %} - {% endif %}{{ L.joining }}</td>
       </tr>
       <tr class="history-row no-break">
         <td class="year-col"></td>
@@ -424,7 +429,7 @@
       <tr class="history-row no-break">
         <td class="year-col">{{ job.end_year }}</td>
         <td class="month-col">{{ job.end_month }}</td>
-        <td>　{{ job.resign_reason_ja | default('一身上の都合により退社') }}</td>
+        <td>{% if lang == 'ja' %}　{% endif %}{{ job.resign_reason_ja | default(L.resignation) }}</td>
       </tr>
       {% endif %}
       {% endfor %}
@@ -435,10 +440,10 @@
         <td class="month-col"></td>
         <td></td>
       </tr>
-      <tr class="close-row">
+      <tr class="history-row close-row">
         <td class="year-col"></td>
         <td class="month-col"></td>
-        <td style="text-align:right; padding-right:8px;"></td>
+        <td style="text-align: right; padding-right: 20px;">{{ L.end_of_doc }}</td>
       </tr>
 
       <!-- Empty filler rows to match JIS form spacing -->
@@ -454,9 +459,9 @@
     <!-- CERTIFICATIONS TABLE (right side — rendered inline here for single-page layout) -->
     <table style="border-top:none; margin-top: 6px;">
       <tr>
-        <th class="year-col label-cell">年</th>
-        <th class="month-col label-cell">月</th>
-        <th class="label-cell" style="text-align:center;">免　許・資　格</th>
+        <th class="year-col label-cell">{{ L.year }}</th>
+        <th class="month-col label-cell">{{ L.month }}</th>
+        <th class="label-cell" style="text-align:center;">{{ L.certificates }}</th>
       </tr>
       {% if certifications %}
       {% for cert in certifications %}
@@ -481,45 +486,53 @@
     <table style="border-top:none; margin-top:6px; width:100%;">
       <tr>
         <td style="width:65%; vertical-align:top; min-height:30mm;">
-          <div style="font-size:7.5pt; color:#555; margin-bottom:3px;">特技、自己PRなど</div>
+          <div style="font-size:7.5pt; color:#555; margin-bottom:3px;">{{ L.self_pr_label }}</div>
           <div style="font-size:9pt; line-height:1.6;">{{ personal.self_pr_ja }}</div>
         </td>
         <td style="width:35%; vertical-align:top; border-left:0.75pt solid #000;">
           <!-- Commute time -->
           <div style="border-bottom:0.75pt solid #000; padding:2px 4px;">
-            <div style="font-size:7.5pt; color:#555;">通勤時間</div>
+            <div style="font-size:7.5pt; color:#555;">{{ L.commute_time_label }}</div>
             <div style="font-size:8.5pt;">
               {% if personal.commute_time %}
-              約　{{ personal.commute_time }}
+              {% if lang != 'en' %}約　{% endif %}{{ personal.commute_time }}
               {% else %}
-              約　　時間　　分
+              {% if lang != 'en' %}約　　時間　　分{% endif %}
               {% endif %}
             </div>
           </div>
           <!-- Dependents -->
           <div style="border-bottom:0.75pt solid #000; padding:2px 4px;">
-            <div style="font-size:7.5pt; color:#555;">扶養家族（配偶者を除く）</div>
-            <div style="font-size:9pt;">{{ personal.dependents_count | default(0) }}人</div>
+            <div style="font-size:7.5pt; color:#555;">{{ L.dependents_label }}</div>
+            <div style="font-size:9pt;">{{ personal.dependents_count | default(0) }}{{ L.people_count | default('人') }}</div>
           </div>
           <!-- Spouse -->
           <div style="border-bottom:0.75pt solid #000; padding:2px 4px;">
-            <div style="font-size:7.5pt; color:#555;">配偶者</div>
+            <div style="font-size:7.5pt; color:#555;">{{ L.spouse_label }}</div>
             <div style="font-size:8.5pt;">
-              {% if personal.has_spouse %}
-              <span class="selected-option">有</span>・無
+              {% if lang == 'ja' %}
+                {% if personal.has_spouse %}
+                <span class="selected-option">有</span>・無
+                {% else %}
+                有・<span class="selected-option">無</span>
+                {% endif %}
               {% else %}
-              有・<span class="selected-option">無</span>
+                {{ 'Yes' if personal.has_spouse else 'No' }}
               {% endif %}
             </div>
           </div>
           <!-- Spouse dependency -->
           <div style="padding:2px 4px;">
-            <div style="font-size:7.5pt; color:#555;">配偶者の扶養義務</div>
+            <div style="font-size:7.5pt; color:#555;">{{ L.spouse_dependency_label }}</div>
             <div style="font-size:8.5pt;">
-              {% if personal.spouse_dependency %}
-              <span class="selected-option">有</span>・無
+              {% if lang == 'ja' %}
+                {% if personal.spouse_dependency %}
+                <span class="selected-option">有</span>・無
+                {% else %}
+                有・<span class="selected-option">無</span>
+                {% endif %}
               {% else %}
-              有・<span class="selected-option">無</span>
+                {{ 'Yes' if personal.spouse_dependency else 'No' }}
               {% endif %}
             </div>
           </div>
@@ -532,7 +545,7 @@
       <tr>
         <td>
           <div style="font-size:7.5pt; color:#555; margin-bottom:3px;">
-            本人希望記入欄（特に給料・職種・勤務時間・勤務地・その他についての希望などがあれば記入）
+            {{ L.desired_conditions_label }}
           </div>
           <div style="font-size:9pt; min-height:12mm;">
             {{ personal.desired_conditions_ja | default('貴社の規定に従います。') }}
@@ -543,7 +556,7 @@
 
     <!-- NOTES -->
     <div style="margin-top:4px; font-size:7pt; color:#555; line-height:1.5;">
-      記入上の注意　１．鉛筆以外の黒又は青の筆記具で記入。　２．数字はアラビア数字で、文字はくずさず正確に書く。　３．※印のところは、該当するものを○で囲む。
+      {{ L.instructions_label }}
     </div>
 
   </div><!-- end page 1 -->

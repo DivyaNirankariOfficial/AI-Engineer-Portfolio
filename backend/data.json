@@ -17,7 +17,7 @@
             "military_service": "No",
             "japanese_era_dates": false,
             "name_furigana": "Divya Nirankari",
-            "nationality_ja": "Indian",
+            "nationality_ja": "インド",
             "address_furigana": "Surat, Gujarat, India",
             "commute_time": "海外在住のため応相談",
             "dependents_count": 0,
@@ -15261,7 +15261,7 @@
             "id": "res_ecg_1",
             "title": "Deep Learning-based ECG Cardiac Abnormality Detection",
             "status": "Authoring / Research Phase",
-            "year": "2024",
+            "year": "2026",
             "description": "Investigating 1D ResNet and CNN architectures for high-accuracy detection of cardiac abnormalities using the PhysioNet dataset.",
             "visible": true
         }

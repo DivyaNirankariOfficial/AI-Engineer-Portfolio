@@ -25,6 +25,7 @@ const Admin = () => {
     const [includeCoverLetter, setIncludeCoverLetter] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isGeneratingCL, setIsGeneratingCL] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [editingItem, setEditingItem] = useState(null); // { type, item }
 
     // Local state for edits
@@ -342,6 +343,7 @@ const Admin = () => {
     if (!formData) return <div className="min-h-screen bg-ivory flex items-center justify-center font-mono text-[10px] text-warmBrown/40 italic">Synchronizing State...</div>;
 
     const handleExportClick = () => {
+        if (isDownloading) return;
         if (['japan', 'korea', 'china'].includes(previewCountry)) {
             setShowDownloadPrompt(true);
         } else {
@@ -357,11 +359,31 @@ const Admin = () => {
         fetchTranslations(); // Ensure latest data is loaded
     };
 
-    const triggerDownload = (lang) => {
-        const url = `http://localhost:8000/api/resume/download/${previewCountry}?lang=${lang}&cover=${includeCoverLetter}&download=true&v=${Date.now()}`;
-        window.open(url, '_blank');
-        setShowDownloadPrompt(false);
-        setIsVerifyingBeforeDownload(false);
+    const triggerDownload = async (lang) => {
+        if (isDownloading) return;
+        setIsDownloading(true);
+        try {
+            const url = `http://localhost:8000/api/resume/download/${previewCountry}?lang=${lang}&cover=${includeCoverLetter}&download=true&v=${Date.now()}`;
+            // Use window.location.href for direct download or fetch and then download to track state better
+            // For simplicity and standard behavior, we use a hidden link click
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', '');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast('PDF Synthesis Initiated', 'success');
+        } catch (err) {
+            showToast('Download failed', 'error');
+        } finally {
+            // Wait a bit to ensure the browser has handled the request before unlocking
+            setTimeout(() => {
+                setIsDownloading(false);
+                setShowDownloadPrompt(false);
+                setIsVerifyingBeforeDownload(false);
+            }, 2000);
+        }
     };
 
     const tabs = [
@@ -1091,10 +1113,20 @@ const Admin = () => {
 
                                     <button 
                                         onClick={handleExportClick}
-                                        className="flex items-center gap-4 px-8 py-3.5 bg-warmBrown text-ivory font-mono text-[11px] uppercase tracking-[0.25em] hover:bg-black transition-all shadow-xl hover:shadow-black/20 group rounded-lg"
+                                        disabled={isDownloading}
+                                        className={`flex items-center gap-4 px-8 py-3.5 bg-warmBrown text-ivory font-mono text-[11px] uppercase tracking-[0.25em] hover:bg-black transition-all shadow-xl hover:shadow-black/20 group rounded-lg ${isDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
-                                        <Download size={16} className="group-hover:translate-y-0.5 transition-transform" />
-                                        Export PDF
+                                        {isDownloading ? (
+                                            <>
+                                                <RefreshCw size={16} className="animate-spin text-accent" />
+                                                Generating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download size={16} className="group-hover:translate-y-0.5 transition-transform" />
+                                                Export PDF
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>
@@ -1803,13 +1835,14 @@ const Admin = () => {
 
                                         <button 
                                             onClick={() => triggerDownload('en')}
-                                            className="w-full group flex items-center justify-between p-5 border border-warmBrown/10 hover:border-accent hover:bg-accent/5 transition-all"
+                                            disabled={isDownloading}
+                                            className={`w-full group flex items-center justify-between p-5 border border-warmBrown/10 hover:border-accent hover:bg-accent/5 transition-all ${isDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >
                                             <div className="text-left">
                                                 <div className="font-mono text-[8px] uppercase tracking-widest text-warmBrown/40 mb-1">Global Standard</div>
                                                 <div className="font-serif text-lg italic text-warmBrown group-hover:text-accent">English (International)</div>
                                             </div>
-                                            <Download size={16} className="text-warmBrown/10 group-hover:text-accent" />
+                                            {isDownloading ? <RefreshCw size={16} className="animate-spin text-accent" /> : <Download size={16} className="text-warmBrown/10 group-hover:text-accent" />}
                                         </button>
 
                                         <button 
@@ -1841,9 +1874,11 @@ const Admin = () => {
                                             </button>
                                             <button 
                                                 onClick={() => triggerDownload(verificationLang)}
-                                                className="px-8 py-2 bg-accent text-white font-mono text-[10px] uppercase tracking-[0.25em] hover:bg-white hover:text-black transition-all flex items-center gap-2"
+                                                disabled={isDownloading}
+                                                className={`px-8 py-2 bg-accent text-white font-mono text-[10px] uppercase tracking-[0.25em] hover:bg-white hover:text-black transition-all flex items-center gap-2 ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                             >
-                                                <Download size={14} /> Confirm & Download PDF
+                                                {isDownloading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />} 
+                                                {isDownloading ? 'Processing...' : 'Confirm & Download PDF'}
                                             </button>
                                         </div>
                                     </div>

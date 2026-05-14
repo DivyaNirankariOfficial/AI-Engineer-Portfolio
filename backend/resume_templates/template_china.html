@@ -57,7 +57,6 @@
         .doc-title {
             font-size: 20pt;
             font-weight: 700;
-            letter-spacing: 8px;
             margin-bottom: 2px;
         }
 
@@ -576,7 +575,7 @@
 
         <!-- ── HEADER ── -->
         <div class="doc-header">
-            <div class="doc-title">简　　历</div>
+            <div class="doc-title">{{ L.rirekisho_title | default('简历') }}</div>
         </div>
         <div class="doc-date">{{ L.generated_at }}：{{ generated_date }}</div>
 
@@ -591,7 +590,7 @@
                     <div class="info-row">
                         <span class="info-label">{{ L.gender }}</span>
                         <span class="info-value">
-                            {% if personal.gender | lower == 'female' %}女{% else %}男{% endif %}
+                            {% if personal.gender | lower == 'female' %}{{ L.female }}{% else %}{{ L.male }}{% endif %}
                         </span>
                     </div>
                     <div class="info-row">
@@ -600,7 +599,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">{{ L.nationality }}</span>
-                        <span class="info-value">{{ personal.nationality_zh | default('印度') }}</span>
+                        <span class="info-value">{{ personal.nationality_zh | default(L.nationality_default) }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">{{ L.address }}</span>
@@ -616,7 +615,7 @@
                     </div>
                     {% if profile.wechat %}
                     <div class="info-row">
-                        <span class="info-label">微信号</span>
+                        <span class="info-label">{{ L.wechat }}</span>
                         <span class="info-value">{{ profile.wechat }}</span>
                     </div>
                     {% endif %}
@@ -645,9 +644,9 @@
             <!-- Photo -->
             <div class="photo-box">
                 {% if profile.photo %}
-                <img src="{{ profile.photo }}" alt="证件照">
+                <img src="{{ profile.photo }}" alt="{{ L.photo_alt }}">
                 {% else %}
-                <div class="photo-placeholder">证件照<br>28×36mm<br>白色背景</div>
+                <div class="photo-placeholder">{{ L.photo_placeholder }}</div>
                 {% endif %}
             </div>
         </div>
@@ -656,22 +655,22 @@
         <div class="section no-break">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.summary }}</span>
-                <span class="section-title-en">Personal Summary</span>
+                {% if lang != 'en' %}<span class="section-title-en">Personal Summary</span>{% endif %}
             </div>
             <div class="summary-box">{{ personal.summary }}</div>
         </div>
 
-        <!-- ── 专业能力 Skills (BEFORE work experience — China convention) ── -->
+        <!-- ── 专业能力 Skills ── -->
         <div class="section no-break">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.skills }}</span>
-                <span class="section-title-en">Professional Skills</span>
+                {% if lang != 'en' %}<span class="section-title-en">Professional Skills</span>{% endif %}
             </div>
             <table class="skills-table">
                 <tr>
-                    <th style="width:22%;">类别</th>
-                    <th>技能 / 工具</th>
-                    <th style="width:70px; text-align:center;">熟练度</th>
+                    <th style="width:22%;">{{ L.category_label }}</th>
+                    <th>{{ L.skills_tools_label }}</th>
+                    <th style="width:70px; text-align:center;">{{ L.proficiency_label }}</th>
                 </tr>
                 {% if skills %}
                 {% for category in skills %}
@@ -683,7 +682,14 @@
                         {% endfor %}
                     </td>
                     <td style="text-align:center;" class="skill-level">
-                        {{ category.level | default('进阶') }}
+                        {% if category.level_dots %}
+                        <div class="dot-row" style="justify-content:center;">
+                            {% for i in range(5) %}
+                            <div class="dot {% if i < category.level_dots %}filled{% endif %}"></div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div style="font-size:7pt; margin-top:2px;">{{ category.level | default(L.proficient_label) }}</div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -691,11 +697,11 @@
             </table>
         </div>
 
-        <!-- ── 工作经历 Work Experience (newest → oldest) ── -->
+        <!-- ── 工作经历 Work Experience ── -->
         <div class="section">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.experience }}</span>
-                <span class="section-title-en">Work Experience</span>
+                {% if lang != 'en' %}<span class="section-title-en">Work Experience</span>{% endif %}
             </div>
             {% for job in experience | sort(attribute='start', reverse=True) %}
             <div class="job-block no-break">
@@ -703,37 +709,42 @@
                     <div class="job-company">
                         {{ job.company }}
                         {% if job.is_current %}
-                        <span class="emp-badge badge-current">在职</span>
+                        <span class="emp-badge badge-current">{{ job.status_label }}</span>
                         {% else %}
-                        <span class="emp-badge badge-past">已离职</span>
+                        <span class="emp-badge badge-past">{{ job.status_label }}</span>
                         {% endif %}
                     </div>
                     <div class="job-period">
-                        {{ job.start_year }}年{{ '%02d'|format(job.start_month) }}月
-                        ~
-                        {% if job.is_current %}至今{% else %}{{ job.end_year }}年{{ '%02d'|format(job.end_month) }}月{%
-                        endif %}
+                        {% if lang == 'zh' %}
+                            {{ job.start_year }}{{ L.year_char }}{{ '%02d'|format(job.start_month) }}{{ L.month_char }}
+                            ~
+                            {% if job.is_current %}{{ L.present }}{% else %}{{ job.end_year }}{{ L.year_char }}{{ '%02d'|format(job.end_month) }}{{ L.month_char }}{% endif %}
+                        {% else %}
+                            {{ job.start_year }}/{{ '%02d'|format(job.start_month) }}
+                            ~
+                            {% if job.is_current %}{{ L.as_of }}{% else %}{{ job.end_year }}/{{ '%02d'|format(job.end_month) }}{% endif %}
+                        {% endif %}
                         （{{ job.duration }}）
                     </div>
                 </div>
                 <div class="job-meta">
                     <div class="job-meta-item">
-                        <span class="job-meta-label">职位：</span>
+                        <span class="job-meta-label">{{ L.role_label }}：</span>
                         <span>{{ job.role }}</span>
                     </div>
                     <div class="job-meta-item">
-                        <span class="job-meta-label">性质：</span>
-                        <span>{{ job.employment_type_zh | default('全职') }}</span>
+                        <span class="job-meta-label">{{ L.type_label }}：</span>
+                        <span>{{ job.employment_type_zh }}</span>
                     </div>
                     {% if job.team_size %}
                     <div class="job-meta-item">
-                        <span class="job-meta-label">团队规模：</span>
+                        <span class="job-meta-label">{{ L.team_size_label }}：</span>
                         <span>{{ job.team_size }}</span>
                     </div>
                     {% endif %}
                 </div>
                 {% if job.bullets %}
-                <div class="job-sub">职责 Responsibilities</div>
+                <div class="job-sub">{{ L.job_duties_label }}</div>
                 <ul class="bullets">
                     {% for bullet in job.bullets %}
                     <li>{{ bullet }}</li>
@@ -741,7 +752,7 @@
                 </ul>
                 {% endif %}
                 {% if job.achievements %}
-                <div class="job-sub">业绩 Achievements</div>
+                <div class="job-sub">{{ L.achievements_label }}</div>
                 <ul class="bullets">
                     {% for item in job.achievements %}
                     <li>{{ item }}</li>
@@ -760,18 +771,24 @@
      ================================================================ -->
     <div class="page">
 
-        <!-- ── 教育背景 Education (newest → oldest) ── -->
+        <!-- ── 教育背景 Education ── -->
         <div class="section no-break">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.education }}</span>
-                <span class="section-title-en">Education</span>
+                {% if lang != 'en' %}<span class="section-title-en">Education Background</span>{% endif %}
             </div>
             {% for edu in education | sort(attribute='start', reverse=True) %}
             <div class="edu-block no-break">
                 <div class="edu-period">
-                    {{ edu.start_year }}年{{ '%02d'|format(edu.start_month) }}月
-                    ~
-                    {{ edu.end_year }}年{{ '%02d'|format(edu.end_month) }}月
+                    {% if lang == 'zh' %}
+                        {{ edu.start_year }}{{ L.year_char }}{{ '%02d'|format(edu.start_month) }}{{ L.month_char }}
+                        ~
+                        {{ edu.end_year }}{{ L.year_char }}{{ '%02d'|format(edu.end_month) }}{{ L.month_char }}
+                    {% else %}
+                        {{ edu.start_year }}/{{ '%02d'|format(edu.start_month) }}
+                        ~
+                        {{ edu.end_year }}/{{ '%02d'|format(edu.end_month) }}
+                    {% endif %}
                     <br><span style="color:#aaa; font-size:7.5pt;">（{{ edu.duration }}）</span>
                 </div>
                 <div class="edu-detail">
@@ -780,7 +797,7 @@
                         {{ edu.degree_zh | default(edu.degree) }} · {{ edu.major }}
                     </div>
                     {% if edu.gpa %}
-                    <div class="edu-gpa">GPA：{{ edu.gpa }}</div>
+                    <div class="edu-gpa">{{ L.gpa_label }}：{{ edu.gpa }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -792,31 +809,31 @@
         <div class="section">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.projects }}</span>
-                <span class="section-title-en">Key Projects</span>
+                {% if lang != 'en' %}<span class="section-title-en">Project Experience</span>{% endif %}
             </div>
             {% for project in projects %}
             <div class="no-break" style="margin-bottom:6px;">
                 <table class="project-table">
                     <tr>
-                        <th>项目名称</th>
+                        <th>{{ L.proj_name_label }}</th>
                         <td colspan="3" style="font-weight:700;">{{ project.name }}</td>
                     </tr>
                     <tr>
-                        <th>时间</th>
+                        <th>{{ L.period_label }}</th>
                         <td style="width:28%;">{{ project.period | default('—') }}</td>
-                        <th style="width:16%;">团队规模</th>
-                        <td>{{ project.team_size | default('个人') }}</td>
+                        <th style="width:16%;">{{ L.team_size_label }}</th>
+                        <td>{{ project.team_size | default(L.individual) }}</td>
                     </tr>
                     <tr>
-                        <th>技术栈</th>
+                        <th>{{ L.tech_stack_label }}</th>
                         <td colspan="3">{{ project.tech }}</td>
                     </tr>
                     <tr>
-                        <th>职责</th>
-                        <td colspan="3">{{ project.role | default('开发者') }}</td>
+                        <th>{{ L.role_label }}</th>
+                        <td colspan="3">{{ project.role | default(L.developer) }}</td>
                     </tr>
                     <tr>
-                        <th>成果</th>
+                        <th>{{ L.outcomes_label }}</th>
                         <td colspan="3" style="line-height:1.7;">
                             {{ project.summary | default(project.description) }}
                         </td>
@@ -832,14 +849,14 @@
         <div class="section no-break">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.languages }}</span>
-                <span class="section-title-en">Language Skills</span>
+                {% if lang != 'en' %}<span class="section-title-en">Language Competence</span>{% endif %}
             </div>
             <table class="lang-table">
                 <tr>
-                    <th style="width:80px;">语言</th>
-                    <th style="width:110px;">水平</th>
-                    <th style="width:120px;">证书/考试</th>
-                    <th>备注</th>
+                    <th style="width:80px;">{{ L.languages }}</th>
+                    <th style="width:110px;">{{ L.skills }}</th>
+                    <th style="width:120px;">{{ L.cert_exam_label }}</th>
+                    <th>{{ L.remarks_label }}</th>
                 </tr>
                 {% for lang in languages %}
                 <tr>
@@ -867,14 +884,14 @@
         <div class="section no-break">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.research }}</span>
-                <span class="section-title-en">Research & Publications</span>
+                {% if lang != 'en' %}<span class="section-title-en">Research & Publications</span>{% endif %}
             </div>
             {% for item in research %}
-            {% if item.description | length > 50 %}
+            {% if item.description | length > 5 %}
             <div class="research-block">
                 <div class="research-title">{{ item.title }}</div>
                 <div class="research-meta">
-                    {{ item.status | default('撰写中') }} · {{ item.year }}年
+                    {{ item.status | default(L.writing_status) }} · {{ item.year }}{{ L.year_char }}
                 </div>
                 <div class="research-desc">{{ item.description }}</div>
             </div>
@@ -888,14 +905,14 @@
         <div class="section no-break">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.awards }}</span>
-                <span class="section-title-en">Awards & Honors</span>
+                {% if lang != 'en' %}<span class="section-title-en">Awards & Honors</span>{% endif %}
             </div>
             {% for award in awards %}
             <div class="award-row">
                 <span class="award-name">{{ award.name }}</span>
                 <span class="award-meta">
                     {{ award.issuer | default('') }}
-                    {% if award.year %} · {{ award.year }}年{% endif %}
+                    {% if award.year %} · {{ award.year }}{{ L.year_char }}{% endif %}
                 </span>
             </div>
             {% endfor %}
@@ -907,30 +924,30 @@
         <div class="section no-break">
             <div class="section-title">
                 <span class="section-title-zh">{{ L.certificates }}</span>
-                <span class="section-title-en">Certifications</span>
+                {% if lang != 'en' %}<span class="section-title-en">Certifications</span>{% endif %}
             </div>
             {% for cert in certifications %}
             <div class="award-row">
                 <span class="award-name">{{ cert.name }}</span>
                 <span class="award-meta">
                     {{ cert.issuer | default('') }}
-                    {% if cert.year %} · {{ cert.year }}年{% endif %}
+                    {% if cert.year %} · {{ cert.year }}{{ L.year_char }}{% endif %}
                 </span>
             </div>
             {% endfor %}
-            {% else %}
+        {% else %}
             <div style="font-size:8.5pt; color:#aaa;">
-                证书获取中（HSK、AWS 等）
+                {{ L.cert_pending }}
             </div>
-            {% endif %}
+        {% endif %}
         </div>
 
-        <!-- ── 兴趣爱好 Hobbies (optional) ── -->
+        <!-- ── 兴趣爱好 Hobbies ── -->
         {% if personal.hobbies %}
         <div class="section no-break">
             <div class="section-title">
-                <span class="section-title-zh">兴趣爱好</span>
-                <span class="section-title-en">Hobbies & Interests</span>
+                <span class="section-title-zh">{{ L.hobbies }}</span>
+                {% if lang != 'en' %}<span class="section-title-en">Hobbies & Interests</span>{% endif %}
             </div>
             <div class="hobbies-box">{{ personal.hobbies }}</div>
         </div>
@@ -938,19 +955,23 @@
 
         <!-- ── FOOTER ── -->
         <div class="footer">
-            制作日期：{{ generated_date }} &nbsp;|&nbsp; {{ profile.name }}
+            {{ L.generated_at }}：{{ generated_date }} &nbsp;|&nbsp; {{ profile.name }}
         </div>
 
     </div><!-- end page 2 -->
     {% if include_cover %}
     <div style="page-break-before: always; break-before: page;"></div>
     <div class="cover-letter-page">
-        <div class="date">{{ generated_date }}</div>
+        <div class="doc-date">{{ L.generated_at }}：{{ generated_date }}</div>
         <div class="greeting">{{ L.salutation }}</div>
         <div class="cl-content">{{ cover_letter.content | safe }}</div>
         <div class="closing">
+            {% if ' ' in L.valediction %}
             <div style="margin-bottom: 8px;">{{ L.valediction.split(' ')[0] }}</div>
-            <div>{{ L.valediction.split(' ')[1] }}！</div>
+            <div>{{ L.valediction.split(' ')[1] }}</div>
+            {% else %}
+            <div>{{ L.valediction }}</div>
+            {% endif %}
         </div>
         <div class="signature">
             <div class="sig-name">{{ profile.name_zh | default(profile.name) }}</div>
