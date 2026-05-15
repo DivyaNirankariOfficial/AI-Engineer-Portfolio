@@ -99,41 +99,20 @@ const Projects = () => {
         if (!res.ok) throw new Error();
         const githubRepos = await res.json();
         
-        // Combine Admin Projects with GitHub Repos
-        // Priority: Admin Manual Projects > GitHub Repos
-        const adminProjects = data.projects || [];
-        const combined = adminProjects.map(p => {
-          const repo = githubRepos.find(r => r.name === p.name);
-          const pCopy = { ...p };
-          if (pCopy.image_override) {
-            pCopy.image = pCopy.image_override.startsWith('http') ? pCopy.image_override : `http://localhost:8000/${pCopy.image_override}`;
-            pCopy.has_image = true;
-          } else if (repo && repo.image) {
-            pCopy.image = repo.image;
-            pCopy.has_image = true;
-          }
-          return pCopy;
-        });
-        
-        // Add repos that aren't already in manual projects
-        githubRepos.forEach(repo => {
-          if (!combined.some(p => p.name === repo.name)) {
-            combined.push({
-              name: repo.name,
-              description: repo.description,
-              techStack: repo.language,
-              github: repo.html_url,
-              demo: repo.homepage,
-              image: repo.image,
-              has_image: repo.has_image,
-              visible: true
-            });
-          }
-        });
+        const mappedRepos = githubRepos.map(repo => ({
+            name: repo.name,
+            description: repo.description,
+            techStack: repo.language,
+            github: repo.html_url,
+            demo: repo.homepage,
+            image: repo.image,
+            has_image: repo.has_image,
+            visible: true
+        }));
 
-        setProjects(combined);
+        setProjects(mappedRepos);
       } catch (err) {
-        setProjects(data.projects || [
+        setProjects([
           { name: 'antigravity-core', description: 'Deep learning vision model.', github: '#', techStack: 'Python' },
           { name: 'ivory-systems', description: 'React FastAPI dynamic portfolio.', github: '#', techStack: 'JavaScript' }
         ]);

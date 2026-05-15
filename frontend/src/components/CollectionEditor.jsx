@@ -80,6 +80,11 @@ const SortableItem = ({ id, item, type, onEdit, onDelete, onToggleVisibility }) 
   );
 };
 
+const getItemId = (i) => {
+  if (!i) return 'unknown';
+  return i.id || i.name || i.title || i.company || i.university || i.topic || i.label || i.platform || i.date || JSON.stringify(i);
+};
+
 const CollectionEditor = ({ type, items, setItems, onEdit }) => {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -91,8 +96,8 @@ const CollectionEditor = ({ type, items, setItems, onEdit }) => {
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (active.id !== over.id) {
-      const oldIndex = items.findIndex(i => (i.id || i.date || i.name) === active.id);
-      const newIndex = items.findIndex(i => (i.id || i.date || i.name) === over.id);
+      const oldIndex = items.findIndex(i => getItemId(i) === active.id);
+      const newIndex = items.findIndex(i => getItemId(i) === over.id);
       const newItems = arrayMove(items, oldIndex, newIndex).map((item, idx) => ({ ...item, order: idx }));
       setItems(newItems);
     }
@@ -100,13 +105,13 @@ const CollectionEditor = ({ type, items, setItems, onEdit }) => {
 
   const deleteItem = (id) => {
      if (window.confirm("Delete this artifact from history?")) {
-        setItems(items.filter(i => (i.id || i.date || i.name) !== id));
+        setItems(items.filter(i => getItemId(i) !== id));
      }
   };
 
   const toggleVisibility = (id) => {
     setItems(items.map(i => {
-      if ((i.id || i.date || i.name) === id) {
+      if (getItemId(i) === id) {
         return { ...i, visible: i.visible === false ? true : false };
       }
       return i;
@@ -121,13 +126,13 @@ const CollectionEditor = ({ type, items, setItems, onEdit }) => {
         onDragEnd={handleDragEnd}
       >
         <SortableContext 
-          items={items.map(i => (i.id || i.date || i.name))}
+          items={items.map(i => getItemId(i))}
           strategy={verticalListSortingStrategy}
         >
           {items.map((item) => (
             <SortableItem 
-              key={item.id || item.date || item.name} 
-              id={item.id || item.date || item.name} 
+              key={getItemId(item)} 
+              id={getItemId(item)} 
               item={item} 
               type={type}
               onEdit={onEdit}

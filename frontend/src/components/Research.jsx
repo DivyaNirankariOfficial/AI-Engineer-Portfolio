@@ -6,7 +6,7 @@ const Research = () => {
   const { data } = useContext(PortfolioContext);
   if (!data || !data.sections_visibility?.research) return null;
 
-  const interests = data.researchInterests?.filter(i => i.visible !== false) || [];
+  const interests = data.researchInterests?.filter(i => i.visible !== false).slice(0, 6) || [];
 
   return (
     <section id="research" className="py-16 px-6">

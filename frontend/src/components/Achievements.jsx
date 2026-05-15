@@ -45,7 +45,7 @@ const Achievements = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {data.achievements.filter(ach => ach.visible !== false).map((achievement, idx) => (
+          {data.achievements.filter(ach => ach.visible !== false).slice(0, 6).map((achievement, idx) => (
             <motion.div 
               key={idx}
               animate={{ y: [0, -12, 0] }}

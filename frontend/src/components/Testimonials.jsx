@@ -6,7 +6,7 @@ const Testimonials = () => {
   const { data } = useContext(PortfolioContext);
   if (!data || !data.sections_visibility?.testimonials) return null;
 
-  const testimonials = data.testimonials?.filter(t => t.visible !== false) || [];
+  const testimonials = data.testimonials?.filter(t => t.visible !== false).slice(0, 6) || [];
 
   return (
     <section id="testimonials" className="py-16 px-6 bg-ivory-deep/10">

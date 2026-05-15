@@ -4,6 +4,7 @@ import { AdminContext } from '../context/AdminContext';
 import { PortfolioContext } from '../context/PortfolioContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import HeroCanvas from '../components/HeroCanvas';
 
 import MessageInbox from '../components/MessageInbox';
 import CollectionEditor from '../components/CollectionEditor';
@@ -319,8 +320,11 @@ const Admin = () => {
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen bg-ivory flex flex-col items-center justify-center relative z-20">
-                <form onSubmit={handleLogin} className="bg-white p-12 border border-warmBrown/5 shadow-2xl flex flex-col gap-8 max-w-sm w-full">
+            <div className="min-h-screen bg-ivory flex flex-col items-center justify-center relative z-20 overflow-hidden">
+                <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+                    <HeroCanvas />
+                </div>
+                <form onSubmit={handleLogin} className="bg-white p-12 border border-warmBrown/5 shadow-2xl flex flex-col gap-8 max-w-sm w-full relative z-10 backdrop-blur-md bg-white/90">
                     <div className="text-center">
                         <h2 className="text-4xl font-serif italic mb-2">Vault Entry</h2>
                         <p className="font-mono text-[10px] uppercase tracking-widest text-warmBrown/40">Secure Signal Required</p>
@@ -812,14 +816,7 @@ const Admin = () => {
                                                 className="text-[9px] font-mono text-accent hover:border-b border-accent uppercase tracking-widest pt-1"
                                             >( Sync Pulse )</button>
                                         </div>
-                                        <span className="font-mono text-[9px] text-warmBrown/30 uppercase tracking-[0.2em]">{formData.projects?.length || 0} nodes</span>
                                     </div>
-                                    <CollectionEditor
-                                        type="projects"
-                                        items={formData.projects || []}
-                                        setItems={(newItems) => setFormData(prev => ({ ...prev, projects: newItems }))}
-                                        onEdit={(item) => setEditingItem({ type: 'projects', item })}
-                                    />
 
                                     {/* GitHub Sync List (Visibility Only) */}
                                     <div className="mt-8 bg-ivory/30 p-6 border border-warmBrown/5">

@@ -10,7 +10,7 @@ const Blog = () => {
 
   if (!data || !data.sections_visibility?.blog) return null;
 
-  const posts = data.blogPosts?.filter(p => p.visible !== false) || [];
+  const posts = data.blogPosts?.filter(p => p.visible !== false).slice(0, 6) || [];
 
   const calculateReadingTime = (content) => {
     const wordsPerMinute = 200;

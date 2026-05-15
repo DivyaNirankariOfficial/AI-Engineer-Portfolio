@@ -10,8 +10,8 @@ const Experience = () => {
   if (!data || !data.sections_visibility?.experience) return null;
 
   const visibleExperience = data.experience.filter(job => job.visible !== false);
-  const latestExperience = visibleExperience.slice(0, 3);
-  const hasMore = visibleExperience.length > 3;
+  const latestExperience = visibleExperience.slice(0, 6);
+  const hasMore = visibleExperience.length > 6;
 
   const ExperienceItem = ({ job, idx, isModal = false }) => (
     <motion.div 

@@ -87,7 +87,6 @@
 
 - **[ ] WebGL Hero Interactive**: A fully 3D interactive "Artifact Cloud" for the landing page.
 - **[ ] Multi-Agent Peer Review**: AI agents that simulate an HR interview based on your current artifacts to provide a "Market Readiness Score".
-- **[ ] Dynamic Project Lab**: Interactive code snippets within project artifacts that run in-browser.
 
 ---
 
