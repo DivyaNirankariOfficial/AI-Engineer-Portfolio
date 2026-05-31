@@ -177,8 +177,16 @@ def clear_readme_cache_for_repo(repo: str) -> None:
 
 
 # ─────────────────────────────────────────────
-# MAIN FETCH FUNCTION
+# IN-MEMORY REPOSITORIES CACHE
 # ─────────────────────────────────────────────
+_repos_cache: list = []
+_repos_cache_ts: float = 0.0
+_REPOS_CACHE_TTL = 3600  # Cache for 1 hour
+
+def clear_github_repos_cache() -> None:
+    global _repos_cache, _repos_cache_ts
+    _repos_cache = []
+    _repos_cache_ts = 0.0
 
 async def fetch_github_projects(username: str) -> list:
     """
@@ -191,6 +199,10 @@ async def fetch_github_projects(username: str) -> list:
 
     Returns list of project dicts ready for portfolio rendering.
     """
+    global _repos_cache, _repos_cache_ts
+    if _repos_cache and (time.time() - _repos_cache_ts < _REPOS_CACHE_TTL):
+        return _repos_cache
+
     token = os.getenv("GITHUB_TOKEN") or GITHUB_TOKEN
     headers = {"Accept": "application/vnd.github.v3+json"}
     if token:
@@ -247,4 +259,7 @@ async def fetch_github_projects(username: str) -> list:
             return_exceptions=False
         )
 
-        return list(enriched)
+        final_list = list(enriched)
+        _repos_cache = final_list
+        _repos_cache_ts = time.time()
+        return final_list

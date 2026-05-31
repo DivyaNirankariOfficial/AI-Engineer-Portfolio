@@ -238,7 +238,10 @@
     }
 
     .selected-option {
-      text-decoration: underline;
+      border: 1px solid #000;
+      border-radius: 50%;
+      padding: 1px 4px;
+      margin: 0 -2px;
       font-weight: bold;
     }
 
@@ -269,23 +272,22 @@
 
     <div class="doc-header">
       <div class="doc-title">{{ L.rirekisho_title }}</div>
-      <div class="doc-date">
-        {% if lang == 'en' %}{{ L.as_of }} {{ generated_date }}{% else %}{{ generated_date }}{{ L.as_of }}{% endif %}
-      </div>
+      <div class="doc-date">{{ generated_date }} </div>
     </div>
 
     <!-- PERSONAL INFO + PHOTO -->
     <table style="margin-bottom:0; border-bottom: none;">
       <tr>
         <!-- LEFT: furigana + name -->
-        <td style="width:55%; border-bottom:none; padding-bottom:0;">
-          <div style="font-size:7pt; color:#555;">{{ L.phonetic }}</div>
-          <div style="font-size:8pt; margin-bottom:2px;">{{ profile.name_furigana }}</div>
+        <td style="border-bottom:none; padding-bottom:0;">
+          <!-- <div style="font-size:7pt; color:#555;">{{ L.phonetic }}</div>
+          <div style="font-size:8pt; margin-bottom:2px;">{{ profile.name_furigana }}</div> -->
+          <div style="font-size:7pt; color:#555;"></div>
           <div style="font-size:7pt; color:#555;">{{ L.name_label }}</div>
           <div style="font-size:13pt; font-weight:bold; letter-spacing:1px;">{{ profile.name }}</div>
         </td>
         <!-- RIGHT: photo -->
-        <td rowspan="4" style="width:32mm; text-align:center; vertical-align:middle; border-left: 0.75pt solid #000;">
+        <td rowspan="4" style="width:40mm; text-align:center; vertical-align:middle; border-left: 0.75pt solid #000;">
           <!-- <div style="font-size:7pt; color:#666; margin-bottom:2px;">写真をはる位置<br>縦36〜40mm<br>横24〜30mm</div> -->
           <div class="photo-box">
             {% if profile.photo %}
@@ -303,30 +305,35 @@
             <tr>
               <td style="border:none; width:22%; padding:1px 2px;">
                 <div style="font-size:7pt; color:#555;">{{ L.nationality }}</div>
-                <div style="font-size:8.5pt;">{{ personal.nationality_ja | default('India' if lang == 'en' else 'インド') }}</div>
+                <div style="font-size:8.5pt;">{% if lang == 'en' %}India {% else %}インド{% endif %}</div>
               </td>
               <td style="border-left:0.75pt solid #000; padding:1px 4px; width:40%;">
-                <div style="font-size:7pt; color:#555;">{{ L.dob }} ({% if lang == 'en' %}Age{% else %}{{ L.age }}{% endif %})</div>
-                <div style="font-size:8.5pt;">{{ personal.japanese_dob_era }} ({% if lang == 'en' %}{{ personal.age }}{% else %}{{ personal.age }}{{ L.age_suffix | default('歳') }}{% endif %})</div>
+
+                <div style="font-size:7pt; color:#555;">{{ L.dob }} ({% if lang == 'en' %}Age{% else %}{{ L.age }}{%
+                  endif %})</div>
+                <div style="font-size:8.5pt;">{%if lang == "en" %}{{personal.dob}} ({{personal.age}}) {%else%} {{
+                  personal.japanese_dob_era
+                  }} {{ personal.age }}{{ L.age_suffix | default('歳') }} {%endif%}</div>
               </td>
               <td style="border-left:0.75pt solid #000; padding:1px 4px; width:18%;">
-                <div style="font-size:7pt; color:#555;">{{ L.gender }}</div>
+                <div style="font-size:7pt; color:#555;">{{ L.gender }} </div>
+
                 <div style="font-size:8.5pt;">
                   {% if lang == 'ja' %}
-                    {% if personal.gender|lower == 'female' %}
-                    男・<span class="selected-option">女</span>
-                    {% else %}
-                    <span class="selected-option">男</span>・女
-                    {% endif %}
+                  {% if personal.gender|lower == 'female' %}
+                  男・<span class="selected-option">女</span>
                   {% else %}
-                    <span class="selected-option">{{ personal.gender_ja }}</span>
+                  <span class="selected-option">男</span>・女
+                  {% endif %}
+                  {% else %}
+                  <span class="selected-option">{{ personal.gender }}</span>
                   {% endif %}
                 </div>
               </td>
               {% if geo_rule.show_visa and (personal.visa_status or personal.visa_type) %}
               <td style="border-left:0.75pt solid #000; padding:1px 4px; width:20%;">
                 <div style="font-size:7pt; color:#555;">{{ L.visa }}</div>
-                <div style="font-size:8pt;">{{ personal.visa_status or personal.visa_type }}</div>
+                <div style="font-size:8pt;">{{ personal.visa_status or profile.visa.JP }}</div>
               </td>
               {% endif %}
             </tr>
@@ -335,8 +342,8 @@
       </tr>
       <tr>
         <td style="border-top: none; border-bottom:none;">
-          <div style="font-size:7pt; color:#555;">{{ L.phonetic }}</div>
-          <div style="font-size:8pt;">{{ profile.address_furigana }}</div>
+          <!-- <div style="font-size:7pt; color:#555;">{{ L.phonetic }}</div>
+          <div style="font-size:8pt;">{{ profile.address_furigana }}</div> -->
           <div style="font-size:7pt; color:#555; margin-top:1px;">{{ L.address }}</div>
           <div style="font-size:9pt;">{{ profile.address }}</div>
         </td>
@@ -354,35 +361,32 @@
                 <div style="font-size:8.5pt;">{{ profile.email }}</div>
               </td>
             </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td colspan="2" style="border-top: 0.75pt solid #000; padding: 0;">
-          <table style="width:100%; border:none; height:100%;">
+            {% if profile.github or profile.linkedin %}
             <tr>
-              <td style="border:none; width:70%; padding:2px 3px;">
-                <div style="font-size:7pt; color:#555;">{{ L.phonetic }}</div>
-                <div style="font-size:7.5pt; color:#888; font-style:italic;">{% if lang == 'ja' %}（現住所以外に連絡を希望する場合のみ記入）{% endif %}</div>
-                <div style="font-size:7pt; color:#555; margin-top:1px;">{{ L.contact_alt_label | default(L.contact_alt) }}{% if lang == 'ja' %}　〒{% endif %}</div>
-                <div style="font-size:8.5pt; color:#888;">{{ L.same_as_above }}</div>
-              </td>
-              <td style="border-left:0.75pt solid #000; padding:2px 3px; width:30%;">
-                <div style="font-size:7pt; color:#555;">{{ L.phone }}</div>
-                <div style="font-size:9pt; margin-top:8px;">{{ profile.alternate_phone }}</div>
+              <td style="border:none; padding:1px 2px;" colspan="2">
+                {% if profile.github %}
+                <div style="font-size:7pt; color:#555;">GitHub</div>
+                <div style="font-size:7.5pt; word-break:break-all;">{{ profile.github | replace('https://', '') }}</div>
+                {% endif %}
+                {% if profile.linkedin %}
+                <div style="font-size:7pt; color:#555; margin-top:2px;">LinkedIn</div>
+                <div style="font-size:7.5pt; word-break:break-all;">{{ profile.linkedin | replace('https://', '') }}</div>
+                {% endif %}
               </td>
             </tr>
+            {% endif %}
           </table>
         </td>
       </tr>
     </table>
-
-    <!-- EDUCATION & WORK HISTORY — combined table -->
+    </hr>
+    <!-- EDUCATION -->
     <table style="margin-top:0; border-top: none;">
       <tr>
-        <th class="year-col label-cell">{{ L.year }}</th>
-        <th class="month-col label-cell">{{ L.month }}</th>
-        <th class="label-cell" style="text-align:center;">{{ L.education }} / {{ L.experience }}</th>
+        <th class="year-col label-cell">{{ L.month }} - {{ L.year }}</th>
+        <th class="month-col label-cell">Degree</th>
+        <th class="label-cell" style="text-align:center;">University / school</th>
+        <!-- <th class="label-cell" style="text-align:center;">GPA</th> -->
       </tr>
 
       <!-- 学歴 label row -->
@@ -395,97 +399,71 @@
       <!-- Education entries — oldest first, each with 入学 and 卒業 -->
       {% for edu in education | sort(attribute='start') %}
       <tr class="history-row no-break">
-        <td class="year-col">{{ edu.start_year }}</td>
-        <td class="month-col">{{ edu.start_month }}</td>
-        <td>{{ edu.institution }} {{ edu.degree if edu.degree else '' }}　{{ L.entry }}</td>
-      </tr>
-      <tr class="history-row no-break">
-        <td class="year-col">{{ edu.end_year }}</td>
-        <td class="month-col">{{ edu.end_month }}</td>
-        <td>{{ edu.institution }} {{ edu.degree if edu.degree else '' }}{% if lang == 'ja' %}　{% else %} - {% endif %}{{ L.graduation }}</td>
+
+        <td class="year-col">{{ edu.year }}</td>
+        <td class="month-col">{{ edu.degree }}</td>
+        <td>{{ edu.institution }} 　{{ edu.gpa }}</td>
       </tr>
       {% endfor %}
+
+    </table>
+    <!-- WORK HISTORY -->
+    <table style="margin-top:0; border-top: none;">
+
+      <tr>
+        <th class="year-col label-cell">{{ L.month }} - {{ L.year }}</th>
+        <th class="month-col label-cell">Position</th>
+        <th class="label-cell" style="text-align:center;">Company Info</th>
+        <th class="label-cell" style="text-align:center;">Resignation reason</th>
+      </tr>
 
       <!-- 職歴 label row -->
       <tr>
         <td class="year-col"></td>
         <td class="month-col"></td>
         <td class="history-section-label">{{ L.experience }}</td>
+        <td class="reason-col"></td>
       </tr>
 
       <!-- Work history entries — oldest first -->
       {% for job in experience | sort(attribute='start') %}
       <tr class="history-row no-break">
-        <td class="year-col">{{ job.start_year }}</td>
-        <td class="month-col">{{ job.start_month }}</td>
+        <td class="year-col">{{ job.startDate }} - {{ job.endDate }}</td>
+        <td class="month-col">{{ job.role }}</td>
+        <td class="month-col">{{ job.company }}</td>
+        <td class="month-col">{{ job.resign_reason | default(job.resign_reason_ja, true) }}</td>
+        <!--         
         <td>
           {% if 'フリーランス' in job.company or 'freelance' in job.company.lower() %}
-            {% if lang == 'ja' %}フリーランス（個人事業主）として活動開始{% else %}Started activities as a Freelancer{% endif %}
+          {% if lang == 'ja' %}フリーランス（個人事業主）として活動開始{% else %}Started activities as a Freelancer{% endif %}
           {% else %}
-            {{ job.company }}{% if lang == 'ja' %}　{% else %} - {% endif %}{{ L.joining }}
+          {{ job.company }}{% if lang == 'ja' %}　{% else %} - {% endif %}{{ L.joining }}
           {% endif %}
-        </td>
-      </tr>
-      <tr class="history-row no-break">
-        <td class="year-col"></td>
-        <td class="month-col"></td>
-        <td>　{{ job.department if job.department else '' }}　{{ job.role }}</td>
-      </tr>
-      {% if not job.is_current %}
-      <tr class="history-row no-break">
-        <td class="year-col">{{ job.end_year }}</td>
-        <td class="month-col">{{ job.end_month }}</td>
-        <td>{% if lang == 'ja' %}　{% endif %}{{ job.resign_reason_ja | default(L.resignation) }}</td>
-      </tr>
-      {% endif %}
-      {% endfor %}
-
-      <!-- 現在に至る + 以上 -->
-      <tr class="history-row">
-        <td class="year-col"></td>
-        <td class="month-col"></td>
-        <td>{% if lang == 'ja' %}　現在に至る{% else %}　Present{% endif %}</td>
-      </tr>
-      <tr class="history-row close-row">
-        <td class="year-col"></td>
-        <td class="month-col"></td>
-        <td style="text-align: right; padding-right: 20px;">{{ L.end_of_doc }}</td>
-      </tr>
-
-      <!-- Empty filler rows to match JIS form spacing -->
-      {% for i in range(3) %}
-      <tr class="history-row">
-        <td class="year-col"></td>
-        <td class="month-col"></td>
-        <td></td>
+        </td> -->
       </tr>
       {% endfor %}
     </table>
-
     <!-- CERTIFICATIONS TABLE (right side — rendered inline here for single-page layout) -->
     <table style="border-top:none; margin-top: 6px;">
       <tr>
         <th class="year-col label-cell">{{ L.year }}</th>
-        <th class="month-col label-cell">{{ L.month }}</th>
+        <!-- <th class="month-col label-cell">{{ L.month }}</th> -->
         <th class="label-cell" style="text-align:center;">{{ L.certificates }}</th>
       </tr>
       {% if certifications %}
       {% for cert in certifications %}
       <tr class="history-row no-break">
         <td class="year-col">{{ cert.year }}</td>
-        <td class="month-col">{{ cert.month }}</td>
         <td>{{ cert.name }}</td>
       </tr>
       {% endfor %}
-      {% endif %}
-      <!-- Empty rows -->
-      {% for i in range(5 - (certifications | length if certifications else 0)) %}
-      <tr class="history-row">
+      {% else %}
+      <tr class="history-row no-break">
         <td class="year-col"></td>
-        <td class="month-col"></td>
-        <td></td>
+        <td>{% if lang == 'ja' %}なし{% else %}None{% endif %}</td>
       </tr>
-      {% endfor %}
+      {% endif %}
+
     </table>
 
     <!-- SELF-PR + SIDEBAR -->
@@ -493,55 +471,39 @@
       <tr>
         <td style="width:65%; vertical-align:top; min-height:30mm;">
           <div style="font-size:7.5pt; color:#555; margin-bottom:3px;">{{ L.self_pr_label }}</div>
-          <div style="font-size:9pt; line-height:1.6;">{{ personal.self_pr_ja }}</div>
+          <div style="font-size:9pt; line-height:1.6;">{% if lang == 'ja' %}{{ personal.self_pr_ja }}{% else %}{{ profile.summary }}{% endif %}</div>
         </td>
         <td style="width:35%; vertical-align:top; border-left:0.75pt solid #000;">
           <!-- Commute time -->
           <div style="border-bottom:0.75pt solid #000; padding:2px 4px;">
             <div style="font-size:7.5pt; color:#555;">{{ L.commute_time_label }}</div>
-            <div style="font-size:8.5pt;">
-              {% if personal.commute_time %}
-              {% if lang != 'en' %}約　{% endif %}{{ personal.commute_time }}
-              {% else %}
-              {% if lang != 'en' %}約　　時間　　分{% endif %}
-              {% endif %}
+            <div style="font-size:8.5pt;">{{personal.commute_time}}
+
             </div>
           </div>
           <!-- Dependents -->
           <div style="border-bottom:0.75pt solid #000; padding:2px 4px;">
             <div style="font-size:7.5pt; color:#555;">{{ L.dependents_label }}</div>
-            <div style="font-size:9pt;">{{ personal.dependents_count | default(0) }}{{ L.people_count | default('人') }}</div>
+            <div style="font-size:9pt;">{{ personal.dependents_count | default(0) }}{{ L.people_count | default('人') }}
+            </div>
           </div>
-          <!-- Spouse -->
+          <!-- Spouse  And Spouse Dependency -->
           <div style="border-bottom:0.75pt solid #000; padding:2px 4px;">
-            <div style="font-size:7.5pt; color:#555;">{{ L.spouse_label }}</div>
+            <div style="font-size:7.5pt; color:#555;">{% if lang == 'ja' %}配偶者 / 扶養義務{% else %}{{ L.spouse_label }} / {{
+              L.spouse_dependency_label }}{% endif %}</div>
             <div style="font-size:8.5pt;">
               {% if lang == 'ja' %}
-                {% if personal.has_spouse %}
-                <span class="selected-option">有</span>・無
-                {% else %}
-                有・<span class="selected-option">無</span>
-                {% endif %}
+              {% if personal.has_spouse %}
+              <span class="selected-option">有</span>・無
               {% else %}
-                {{ 'Yes' if personal.has_spouse else 'No' }}
+              有・<span class="selected-option">無</span>
+              {% endif %}
+              {% else %}
+              {{ 'Yes' if personal.has_spouse else 'No' }}
               {% endif %}
             </div>
           </div>
-          <!-- Spouse dependency -->
-          <div style="padding:2px 4px;">
-            <div style="font-size:7.5pt; color:#555;">{{ L.spouse_dependency_label }}</div>
-            <div style="font-size:8.5pt;">
-              {% if lang == 'ja' %}
-                {% if personal.spouse_dependency %}
-                <span class="selected-option">有</span>・無
-                {% else %}
-                有・<span class="selected-option">無</span>
-                {% endif %}
-              {% else %}
-                {{ 'Yes' if personal.spouse_dependency else 'No' }}
-              {% endif %}
-            </div>
-          </div>
+
         </td>
       </tr>
     </table>
@@ -554,7 +516,7 @@
             {{ L.desired_conditions_label }}
           </div>
           <div style="font-size:9pt; min-height:12mm;">
-            {{ personal.desired_conditions_ja | default('貴社の規定に従います。') }}
+            {{ personal.desired_conditions_ja }}
           </div>
         </td>
       </tr>
@@ -566,11 +528,6 @@
     </div>
 
   </div><!-- end page 1 -->
-
-  <!-- ================================================================
-     添え状 (Cover Letter) — Optional
-     ================================================================ -->
-
 </body>
 
 </html>

@@ -260,7 +260,7 @@ Korea's AI research ecosystem — led by institutions like KAIST and ETRI and ba
 
 My work sits at the boundary between deep learning research and production engineering. I built an ECG cardiac abnormality detection model achieving 94% F1-score on the PhysioNet dataset using 1D ResNet and CNN architectures — the same class of models used in cutting-edge cardiac diagnostics research. I've also shipped production backend infrastructure: REST APIs at 10,000+ daily requests with 99.9% uptime, 40% database performance improvement through PostgreSQL optimisation, and real-time AI chatbot systems deployed across multiple platforms.
 
-I'm currently studying Korean — beginner level — and approaching it with the same commitment I bring to my technical work. I understand that language integration is part of working effectively in a Korean company, and I'm taking it seriously. I would require E-7 Specially Designated Activities visa sponsorship and am fully prepared to relocate to Korea.
+I'm currently studying Korean — beginner level — and approaching it with the same commitment I bring to my technical work. I understand that language integration is part of working effectively in a Korean company, and I'm taking it seriously. I require E-7 Specially Designated Activities visa sponsorship and am fully prepared to relocate to Korea.
 
 [Company Name]'s focus on [specific area] is directly relevant to my background. I'd welcome the chance to speak further.
 

@@ -61,6 +61,7 @@ DEFAULT_DATA = {
         "role": "Software Engineer & AI/ML Engineer",
         "email": "dvnirankari@gmail.com",
         "phone": "+91 9265768306",
+        "alternate_phone": "",
         "location": "Surat, Gujarat, India",
         "summary": "Python and AI/ML Engineer building production-ready machine learning systems, with a deep focus on Healthcare AI and biomedical signal processing. At Logixbuilt Infotech, I developed high-throughput REST APIs (10k+ daily requests, 99.9% uptime) and reduced database response times by 40% through PostgreSQL query optimisation. As a freelance engineer, I have designed ECG cardiac abnormality detection models achieving 94% F1-score using 1D CNN and ResNet architectures on the PhysioNet dataset, and built real-time AI-powered chatbots integrated across WhatsApp, Telegram, and Messenger. I am currently authoring a research paper on deep learning-based ECG analysis and am actively studying Japanese, with the goal of contributing to Japan's world-class AI research and healthcare technology ecosystem.",
         "bio": "Python and AI/ML Engineer specialising in Healthcare AI and biomedical signal processing. I build production-grade ML systems and scalable backends — from ECG cardiac detection models to real-time chatbot integrations.",
@@ -70,6 +71,7 @@ DEFAULT_DATA = {
             "nationality": "India",
             "marital_status": "Single",
             "political_status": "",
+            # Note: WeChat and KakaoTalk IDs are intentionally different platform-specific handles.
             "wechat_id": "",
             "military_service": "No",
             "japanese_era_dates": False,
@@ -80,9 +82,9 @@ DEFAULT_DATA = {
             "dependents_count": 0,
             "has_spouse": False,
             "spouse_dependency": False,
-            "self_pr_ja": "Python・AI/MLエンジニアとして、医療AI分野に特化した実務経験を持ちます。ECG信号を用いた心臓異常検知モデル（1D CNN / ResNet、F1スコア94%）や、FastAPIを活用したスケーラブルなバックエンドシステムの開発に携わってまいりました。現在、日本語を積極的に学習中であり、日本の先進的なAI研究・開発環境において貢献したいと考えています。",
-            "self_pr_ja_detailed": "Python・AI/MLエンジニアとして、医療AIおよびバックエンド開発に注力してまいりました。Logixbuilt Infotech社ではFastAPIによるREST API開発・PostgreSQLクエリ最適化・自動テストパイプライン構築に従事し、フリーランスとして国際的なクライアント向けにPyTorchを用いた本番環境MLモデルの設計・ECG心臓異常検知システム（1D ResNet、PhysioNetデータセット使用）の開発を担当しました。現在は1D ResNetを用いた心臓異常検知に関する研究論文を執筆中です。在学中には「Data Structure Excellence Award」「Student of the Year」等の学業表彰を受けており、日本の医療AI・ヘルスケアテック分野でその専門性を活かし、社会に貢献することを目指しています。",
-            "career_summary_ja": "Python・AI/MLエンジニアとして、医療AIおよびバックエンド開発に注力してまいりました。Logixbuilt Infotech社ではFastAPIによるREST API開発・PostgreSQLクエリ最適化・自動テストパイプライン構築に従事し、フリーランスとして国際的なクライアント向けにPyTorchを用いた本番環境MLモデルの設計・ECG心臓異常検知システム（1D ResNet、PhysioNetデータセット使用）の開発を担当しました。現在は1D ResNetを用いた心臓異常検知に関する研究論文を執筆中であり、日本の医療AI・ヘルスケアテック分野でその専門性を活かし、社会に貢献することを目指しています。",
+            "self_pr_ja": "",
+            "self_pr_ja_detailed": "",
+            "career_summary_ja": "",
             "desired_conditions_ja": "貴社の規定に従います。"
         },
         "visa_info": {
@@ -91,12 +93,15 @@ DEFAULT_DATA = {
             "visaExpiryDate": ""
         },
         "visa": {
-            "CN": "需要工作签证",
-            "CN_EN": "Z work visa sponsorship required",
-            "JP": "就労ビザが必要",
-            "JP_EN": "Engineer / Specialist in Humanities visa sponsorship required",
-            "KR": "비자 스폰서십 필요",
-            "KR_EN": "E-7 visa sponsorship required",
+            "JP": "Requires Engineer / Specialist in Humanities / International Services visa sponsorship",
+            "KR": "Requires E-7 Specially Designated Activities visa sponsorship",
+            "CN": "需要工作签证（Z签证），需由用人单位协助办理。",
+            "CN_EN": "Requires Z-visa sponsorship for employment in China.",
+            "US": "Requires H-1B visa sponsorship",
+            "UK": "Requires Skilled Worker visa sponsorship",
+            "DE": "Eligible for EU Blue Card; requires employer sponsorship",
+            "AE": "Requires employer-sponsored employment visa",
+            "IN": "Indian citizen — no visa required",
             "GLOBAL": "Relocation sponsorship required"
         }
     },
@@ -157,8 +162,10 @@ DEFAULT_DATA = {
     "languages": [
         {"id": "lang_1", "name": "English", "level": "Fluent / Professional", "percentage": 95, "visible": True, "order": 1},
         {"id": "lang_2", "name": "Hindi", "level": "Native", "percentage": 100, "visible": True, "order": 2},
-        {"id": "lang_3", "name": "Korean", "level": "Basic", "percentage": 10, "visible": True, "order": 3},
-        {"id": "lang_4", "name": "Japanese", "level": "Beginner (Currently Learning)", "percentage": 8, "visible": True, "order": 4}
+        {"id": "lang_3", "name": "Gujarati", "level": "Native", "percentage": 100, "visible": True, "order": 3},
+        {"id": "lang_4", "name": "Korean", "level": "Basic", "percentage": 10, "visible": True, "order": 4},
+        {"id": "lang_5", "name": "Japanese", "level": "Beginner (Currently Learning)", "percentage": 8, "visible": True, "order": 5},
+        {"id": "lang_6", "name": "Mandarin Chinese", "level": "Beginner (Currently Learning)", "percentage": 8, "visible": True, "order": 6}
     ],
     "experience": [
         {
@@ -226,15 +233,7 @@ DEFAULT_DATA = {
     "contactMessages": [],
     "analytics": [],
     "activityLog": [],
-    "projects": [
-        {
-            "name": "Sample Manual Project",
-            "description": "An example project added manually.",
-            "image": "",
-            "image_override": "",
-            "visible": False
-        }
-    ],
+    "projects": [],
     "hiddenProjects": [],
     "projectSummaries": {},
     "settings": {"hero3d": True}

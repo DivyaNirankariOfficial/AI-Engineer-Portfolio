@@ -1,246 +1,292 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8">
-<title>{{ L.shokumu_title }} - {{ profile.name }}</title>
-<style>
-/* ============================================================
+  <meta charset="UTF-8">
+  <title>{{ L.shokumu_title }} - {{ profile.name }}</title>
+  <style>
+    /* ============================================================
    PLAYWRIGHT PDF RESET
    ============================================================ */
-@page {
-  size: A4;
-  margin: 15mm 15mm 12mm 15mm;
-}
-* {
-  box-sizing: border-box;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  margin: 0;
-  padding: 0;
-}
-body {
-  font-family: "Yu Gothic", "Meiryo", "Hiragino Kaku Gothic Pro", "Noto Sans JP", sans-serif;
-  font-size: 9pt;
-  line-height: 1.5;
-  color: #1a1a1a;
-  background: #fff;
-}
+    @page {
+      size: A4;
+      margin: 15mm 15mm 12mm 15mm;
+    }
 
-/* ============================================================
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Yu Gothic", "Meiryo", "Hiragino Kaku Gothic Pro", "Noto Sans JP", sans-serif;
+      font-size: 9pt;
+      line-height: 1.5;
+      color: #1a1a1a;
+      background: #fff;
+    }
+
+    /* ============================================================
    PAGE BREAK CONTROL
    ============================================================ */
-.section { page-break-inside: avoid; break-inside: avoid; margin-bottom: 12px; }
-.section-header { page-break-after: avoid; break-after: avoid; }
-.job-block { page-break-inside: avoid; break-inside: avoid; margin-bottom: 10px; }
-.project-block { page-break-inside: avoid; break-inside: avoid; margin-bottom: 8px; }
-p, li { orphans: 3; widows: 3; }
+    .section {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      margin-bottom: 12px;
+    }
 
-/* ============================================================
+    .section-header {
+      page-break-after: avoid;
+      break-after: avoid;
+    }
+
+    .job-block {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      margin-bottom: 10px;
+    }
+
+    .project-block {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      margin-bottom: 8px;
+    }
+
+    p,
+    li {
+      orphans: 3;
+      widows: 3;
+    }
+
+    /* ============================================================
    DOCUMENT HEADER
    ============================================================ */
-.doc-header {
-  text-align: center;
-  margin-bottom: 10px;
-  padding-bottom: 6px;
-  border-bottom: 2pt solid #000;
-}
-.doc-title {
-  font-size: 18pt;
-  font-weight: bold;
-  margin-bottom: 2px;
-}
-.doc-meta {
-  font-size: 8.5pt;
-  color: #444;
-  margin-top: 3px;
-  text-align: right;
-}
+    .doc-header {
+      text-align: center;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 2pt solid #000;
+    }
 
-/* ============================================================
+    .doc-title {
+      font-size: 18pt;
+      font-weight: bold;
+      margin-bottom: 2px;
+      letter-spacing: -0.5px;
+      word-spacing: -2px;
+    }
+
+    .doc-meta {
+      font-size: 8.5pt;
+      color: #444;
+      margin-top: 3px;
+      text-align: right;
+    }
+
+    /* ============================================================
    SECTION STYLES
    ============================================================ */
-.section-title {
-  font-size: 10pt;
-  font-weight: bold;
-  background: #1a1a1a;
-  color: #fff;
-  padding: 3px 8px;
-  margin-bottom: 6px;
-  letter-spacing: 2px;
-}
-.subsection-title {
-  font-size: 9pt;
-  font-weight: bold;
-  border-left: 3pt solid #555;
-  padding-left: 6px;
-  margin: 6px 0 4px;
-}
+    .section-title {
+      font-size: 10pt;
+      font-weight: bold;
+      background: #1a1a1a;
+      color: #fff;
+      padding: 3px 8px;
+      margin-bottom: 6px;
+      letter-spacing: 2px;
+    }
 
-/* ============================================================
+    .subsection-title {
+      font-size: 9pt;
+      font-weight: bold;
+      border-left: 3pt solid #555;
+      padding-left: 6px;
+      margin: 6px 0 4px;
+    }
+
+    /* ============================================================
    SUMMARY
    ============================================================ */
-.summary-box {
-  border: 0.5pt solid #ccc;
-  padding: 6px 10px;
-  font-size: 9pt;
-  line-height: 1.7;
-  background: #fafafa;
-}
+    .summary-box {
+      border: 0.5pt solid #ccc;
+      padding: 6px 10px;
+      font-size: 9pt;
+      line-height: 1.7;
+      background: #fafafa;
+    }
 
-/* ============================================================
+    /* ============================================================
    SKILL MATRIX TABLE
    ============================================================ */
-.skill-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 8.5pt;
-}
-.skill-table th {
-  background: #444;
-  color: #fff;
-  padding: 3px 6px;
-  text-align: left;
-  font-weight: bold;
-  border: 0.5pt solid #666;
-}
-.skill-table td {
-  padding: 3px 6px;
-  border: 0.5pt solid #ccc;
-  vertical-align: top;
-  line-height: 1.6;
-}
-.skill-table tr:nth-child(even) td { background: #f7f7f7; }
+    .skill-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+    }
 
-/* ============================================================
+    .skill-table th {
+      background: #444;
+      color: #fff;
+      padding: 3px 6px;
+      text-align: left;
+      font-weight: bold;
+      border: 0.5pt solid #666;
+    }
+
+    .skill-table td {
+      padding: 3px 6px;
+      border: 0.5pt solid #ccc;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    .skill-table tr:nth-child(even) td {
+      background: #f7f7f7;
+    }
+
+    /* ============================================================
    JOB HISTORY
    ============================================================ */
-.job-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  border-bottom: 0.75pt solid #333;
-  padding-bottom: 2px;
-  margin-bottom: 4px;
-}
-.job-company {
-  font-size: 10.5pt;
-  font-weight: bold;
-}
-.job-period {
-  font-size: 8pt;
-  color: #555;
-}
-.job-meta {
-  font-size: 8pt;
-  color: #444;
-  margin-bottom: 4px;
-}
-.job-bullets {
-  padding-left: 14px;
-  margin: 3px 0;
-}
-.job-bullets li {
-  font-size: 9pt;
-  margin-bottom: 2px;
-  line-height: 1.5;
-}
+    .job-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 0.75pt solid #333;
+      padding-bottom: 2px;
+      margin-bottom: 4px;
+    }
 
-/* ============================================================
+    .job-company {
+      font-size: 10.5pt;
+      font-weight: bold;
+    }
+
+    .job-period {
+      font-size: 8pt;
+      color: #555;
+    }
+
+    .job-meta {
+      font-size: 8pt;
+      color: #444;
+      margin-bottom: 4px;
+    }
+
+    .job-bullets {
+      padding-left: 14px;
+      margin: 3px 0;
+    }
+
+    .job-bullets li {
+      font-size: 9pt;
+      margin-bottom: 2px;
+      line-height: 1.5;
+    }
+
+    /* ============================================================
    PROJECT TABLE
    ============================================================ */
-.project-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 8.5pt;
-  margin-bottom: 6px;
-}
-.project-table th {
-  background: #555;
-  color: #fff;
-  padding: 4px 8px;
-  text-align: left;
-  border: 0.5pt solid #777;
-  width: 22%;
-  font-weight: bold;
-}
-.project-table td {
-  padding: 4px 8px;
-  border: 0.5pt solid #ccc;
-  vertical-align: top;
-  line-height: 1.6;
-  word-break: break-word;
-}
+    .project-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin-bottom: 6px;
+    }
 
-/* ============================================================
+    .project-table th {
+      background: #555;
+      color: #fff;
+      padding: 4px 8px;
+      text-align: left;
+      border: 0.5pt solid #777;
+      width: 22%;
+      font-weight: bold;
+    }
+
+    .project-table td {
+      padding: 4px 8px;
+      border: 0.5pt solid #ccc;
+      vertical-align: top;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    /* ============================================================
    SELF-PR
    ============================================================ */
-.self-pr-box {
-  border: 0.5pt solid #ccc;
-  padding: 8px 10px;
-  font-size: 9pt;
-  line-height: 1.8;
-  min-height: 30mm;
-}
+    .self-pr-box {
+      border: 0.5pt solid #ccc;
+      padding: 8px 10px;
+      font-size: 9pt;
+      line-height: 1.8;
+      min-height: 30mm;
+    }
 
-/* ============================================================
+    /* ============================================================
    PAGE NUMBER (CSS counter)
    ============================================================ */
-@page {
-  @bottom-right {
-    content: counter(page) " / " counter(pages);
-    font-size: 8pt;
-    color: #888;
-    font-family: "Yu Gothic", sans-serif;
-  }
-}
-</style>
+    @page {
+      @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-size: 8pt;
+        color: #888;
+        font-family: "Yu Gothic", sans-serif;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ============================================================
+  <!-- ============================================================
      DOCUMENT HEADER
      ============================================================ -->
-<div class="doc-header">
-  <div class="doc-title">{{ L.shokumu_title }}</div>
-  <div class="doc-meta" style="margin-bottom: 4px;">
+  <div class="doc-header">
+    <div class="doc-title">{{ L.shokumu_title }}</div>
+    <!-- <div class="doc-meta" style="margin-bottom: 4px;">
     {% if lang == 'en' %}{{ L.as_of }} {{ generated_date }}{% else %}{{ generated_date }}{{ L.as_of }}{% endif %}　　{{ L.name_label | default(L.name) }}{% if lang == 'en' %}: {% else %}：{% endif %}{{ profile.name }}
-    <br>
+    <br> -->
     {% if profile.address %}{{ profile.address }}{% endif %}
   </div>
   {% if connections %}
   <div style="font-size: 8pt; color: #555; text-align: right; line-height: 1.4;">
     {% for conn in connections %}
-      {% if conn.platform | lower in ['github', 'linkedin'] and conn.visible %}
-        <div>{{ conn.platform }} : <a href="{{ conn.url }}" style="color: inherit; text-decoration: none;">{{ conn.url | replace('https://', '') }}</a></div>
-      {% endif %}
+    {% if conn.platform | lower in ['github', 'linkedin'] and conn.visible %}
+    <div>{{ conn.platform }} : <a href="{{ conn.url }}" style="color: inherit; text-decoration: none;">{{ conn.url |
+        replace('https://', '') }}</a></div>
+    {% endif %}
     {% endfor %}
   </div>
   {% endif %}
-</div>
+  </div>
 
-<!-- ============================================================
+  <!-- ============================================================
      1. 職務要約 — Career Summary
      ============================================================ -->
-<div class="section">
-  <div class="section-title section-header">{{ L.summary }}</div>
-  <div class="summary-box">
-    {{ personal.career_summary_ja | default(profile.summary) }}
-  </div>
-</div>
+  <div class="section">
+    <div class="section-title section-header">{{ L.summary }}</div>
+    <div class="summary-box">
+      {{ profile.summary }}
+    </div>
 
-<!-- ============================================================
+  </div>
+
+  <!-- ============================================================
      2. スキル — Skill Matrix
      ============================================================ -->
-<div class="section">
-  <div class="section-title section-header">{{ L.skills }}</div>
-  <table class="skill-table">
-    <tr>
-      <th>{{ L.category_label }}</th>
-      <th>{{ L.skills }}</th>
-      <th>{{ L.experience_years_label | default('Years') }}</th>
-      <th>{{ L.proficiency_label }}</th>
-    </tr>
-    {% if skills %}
+  <div class="section">
+    <div class="section-title section-header">{{ L.skills }}</div>
+    <table class="skill-table">
+      <tr>
+        <th>{{ L.category_label }}</th>
+        <th>{{ L.skills }}</th>
+        <th>{{ L.experience_years_label | default('Years') }}</th>
+        <th>{{ L.proficiency_label }}</th>
+      </tr>
+      {% if skills %}
       {% for category in skills %}
       <tr>
         <td style="font-weight:bold; white-space:nowrap;">{{ category.name_ja | default(category.name) }}</td>
@@ -249,145 +295,172 @@ p, li { orphans: 3; widows: 3; }
         <td style="text-align:center;">{{ category.level | default(L.proficient_label) }}</td>
       </tr>
       {% endfor %}
-    {% endif %}
-  </table>
-</div>
-
-<!-- ============================================================
-     3. 職務経歴 — Detailed Work History
-     ============================================================ -->
-<div class="section">
-  <div class="section-title section-header">{{ L.experience }}</div>
-
-  {% for job in experience | sort(attribute='start') %}
-  <div class="job-block">
-    <div class="job-header">
-      <div class="job-company">{{ job.company }}</div>
-      <div class="job-period">
-        {{ job.start_year }}{{ L.year_char }}{{ job.start_month }}{{ L.month_char }} {% if lang == 'en' %}-{% else %}〜{% endif %}
-        {% if job.is_current %}{{ L.as_of }}{% else %}{{ job.end_year }}{{ L.year_char }}{{ job.end_month }}{{ L.month_char }}{% endif %}
-      </div>
-    </div>
-    <div class="job-meta">
-      {{ L.role_label }}{% if lang == 'en' %}: {% else %}：{% endif %}{{ job.role }}　　
-      {{ L.type_label }}{% if lang == 'en' %}: {% else %}：{% endif %}{{ job.employment_type_ko }}　　
-      {% if job.team_size %}{{ L.team_size_label }}{% if lang == 'en' %}: {% else %}：{% endif %}{{ job.team_size }}{{ L.people_count | default('') }}{% endif %}
-    </div>
-
-    {% set bullet_list = job.bullets if job.bullets else ([job.description] if job.description else []) %}
-    {% if bullet_list %}
-    <div class="subsection-title">{{ L.job_duties_label }}</div>
-    <ul class="job-bullets">
-      {% for bullet in bullet_list %}
-      <li>{{ bullet }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-
-    {% if job.achievements %}
-    <div class="subsection-title">{{ L.achievements_label }}</div>
-    <ul class="job-bullets">
-      {% for item in job.achievements %}
-      <li>{{ item }}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-  </div>
-  {% endfor %}
-</div>
-
-<!-- ============================================================
-     4. プロジェクト詳細 — Project Details
-     ============================================================ -->
-{% if projects %}
-<div class="section">
-  <div class="section-title section-header">{{ L.projects }}</div>
-
-  {% for project in projects %}
-  <div class="project-block">
-    <table class="project-table">
-      <tr>
-        <th>{{ L.proj_name_label }}</th>
-        <td colspan="3" style="font-weight:bold;">{{ project.name }}</td>
-      </tr>
-      <tr>
-        <th>{{ L.period_label }}</th>
-        <td>{{ project.period | default('—') }}</td>
-        <th style="width:18%;">{{ L.team_size_label }}</th>
-        <td>{{ project.team_size | default(L.individual) }}</td>
-      </tr>
-      <tr>
-        <th>{{ L.tech_stack_label }}</th>
-        <td colspan="3">{{ project.techStack | default(project.tech, true) }}</td>
-      </tr>
-      <tr>
-        <th>{{ L.role_label }}・{{ L.job_duties_label }}</th>
-        <td colspan="3">{{ project.role | default(L.developer) }}</td>
-      </tr>
-      <tr>
-        <th>{{ L.outcomes_label }}</th>
-        <td colspan="3" style="line-height:1.7;">{{ project.summary | default(project.description, true) }}</td>
-      </tr>
+      {% endif %}
     </table>
   </div>
-  {% endfor %}
-</div>
-{% endif %}
 
-<!-- ============================================================
+  <!-- ============================================================
+     3. 職務経歴 — Detailed Work History
+     ============================================================ -->
+  <div class="section">
+    <div class="section-title section-header">{{ L.experience }}</div>
+
+    {% for job in experience | sort(attribute='start') %}
+    <div class="job-block">
+      <div class="job-header">
+        <div class="job-company">{{ job.company }}</div>
+        <!-- Date of Exp -->
+        <div class="job-period">
+          {% if lang == 'en' %}
+          {{ job.start_year }}/{{ '%02d' | format(job.start_month) }} - {% if job.is_current %}Present{% else %}{{
+          job.end_year }}/{{ '%02d' | format(job.end_month) }}{% endif %}
+          {% else %}
+          {{ job.start_year }}年{{ job.start_month }}月 〜 {% if job.is_current %}{{ L.as_of }}{% else %}{{ job.end_year
+          }}年{{ job.end_month }}月{% endif %}
+          {% endif %}
+        </div>
+      </div>
+      <div class="job-meta">
+        {{ job.role | default(L.developer) }}　｜　{{ job.employment_type_ja | default(L.fulltime) }}　｜　{{ job.team_size | default(L.individual) }}
+      </div>
+
+      {% set bullet_list = job.bullets if job.bullets else ([job.description] if job.description else []) %}
+      {% if bullet_list %}
+      <div class="subsection-title">{{ L.job_duties_label }}</div>
+      <ul class="job-bullets">
+        {% for bullet in bullet_list %}
+        <li>{{ bullet }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if job.achievements %}
+      <div class="subsection-title">{{ L.achievements_label }}</div>
+      <ul class="job-bullets">
+        {% for item in job.achievements %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ============================================================
+     4. プロジェクト詳細 — Project Details
+     ============================================================ -->
+  {% if projects %}
+  <div class="section">
+    <div class="section-title section-header">{{ L.projects }}</div>
+
+    {% for project in projects %}
+    <div class="project-block">
+      <table class="project-table">
+        <tr>
+          <th>{{ L.proj_name_label }}</th>
+          <td colspan="3" style="font-weight:bold;">{{ project.name }}</td>
+        </tr>
+        <tr>
+          <th>{{ L.period_label }}</th>
+          <td>{{ project.period | default('—') }}</td>
+          <th style="width:18%;">{{ L.team_size_label }}</th>
+          <td>{{ project.team_size | default(L.individual) }}</td>
+        </tr>
+        <tr>
+          <th>{{ L.tech_stack_label }}</th>
+          <td colspan="3">{{ project.techStack | default(project.tech, true) }}</td>
+        </tr>
+        <tr>
+          <th>{{ L.role_label }}・{{ L.job_duties_label }}</th>
+          <td colspan="3">{{ project.role | default(L.developer) }}</td>
+        </tr>
+        <tr>
+          <th>{{ L.outcomes_label }}</th>
+          <td colspan="3" style="line-height:1.7;">{{ project.summary | default(project.description, true) }}</td>
+        </tr>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ============================================================
      5. 研究・論文 — Research (if any)
      ============================================================ -->
-{% if research %}
-<div class="section">
-  <div class="section-title section-header">{{ L.research }}</div>
-  {% for item in research %}
-  <div class="job-block">
-    <div style="font-weight:bold; font-size:9.5pt;">{{ item.title }}</div>
-    <div style="font-size:8pt; color:#555; margin:2px 0;">
-      {{ item.status | default(L.writing_status) }}　{{ item.year }}{{ L.year_char }}
+  {% if research %}
+  <div class="section">
+    <div class="section-title section-header">{{ L.research }}</div>
+    {% for item in research %}
+    <div class="job-block">
+      <div style="font-weight:bold; font-size:9.5pt;">{{ item.title }}</div>
+      <div style="font-size:8pt; color:#555; margin:2px 0;">
+        {{ item.status | default(L.writing_status) }}　{{ item.year }}{{ L.year_char }}
+      </div>
+      <div style="font-size:9pt; line-height:1.6;">{{ item.description }}</div>
     </div>
-    <div style="font-size:9pt; line-height:1.6;">{{ item.description }}</div>
+    {% endfor %}
   </div>
-  {% endfor %}
-</div>
-{% endif %}
+  {% endif %}
 
+  <!-- ============================================================
+     受賞歴 — Awards (not listed on 履歴書 免許・資格)
+     ============================================================ -->
+  {% if awards %}
+  <div class="section">
+    <div class="section-title section-header">{{ L.awards }}</div>
+    <table class="skill-table">
+      <tr>
+        <th style="width:12%;">{{ L.year }}</th>
+        <th>{{ L.awards }}</th>
+        <th style="width:28%;">{{ L.remarks_label | default('備考') }}</th>
+      </tr>
+      {% for award in awards %}
+      <tr>
+        <td style="text-align:center;">{{ award.year }}</td>
+        <td>{{ award.name }}</td>
+        <td>{{ award.issuer | default('—') }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
 
-
-<!-- ============================================================
+  <!-- ============================================================
      FOOTER
      ============================================================ -->
-<div style="margin-top:10px; text-align:right; font-size:8pt; color:#666;">
-  <!-- removed 以上 -->
-</div>
+  <div style="margin-top:10px; text-align:right; font-size:8pt; color:#666;">
+    <!-- removed 以上 -->
+  </div>
 
-<!-- ================================================================
+  <!-- ================================================================
      添え状 (Cover Letter) — Optional
      ================================================================ -->
-{% if include_cover %}
-<div class="page" style="page-break-before: always; break-before: page; padding: 25mm 20mm; font-family: Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;">
-  <div style="text-align: right; font-size: 11pt; margin-bottom: 15mm;">
-    {{ generated_date }}
-  </div>
+  {% if include_cover %}
+  <div class="page"
+    style="page-break-before: always; break-before: page; padding: 10mm 15mm; font-family: Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; page-break-inside: avoid; break-inside: avoid;">
+    <div style="text-align: right; font-size: 10pt; margin-bottom: 6mm;">
+      {{ generated_date }}
+    </div>
 
 
-  <div style="text-align: center; margin-bottom: 20mm; font-size: 14pt; font-weight: bold; border-bottom: 2px solid #000; display: inline-block; width: 100%; padding-bottom: 8px; text-transform: uppercase;">
-    {{ L.cl_header | default('応募書類の送付につきまして (Application for Position)') }}
-  </div>
+    {% if lang == 'ja' %}
+    <div
+      style="text-align: center; margin-bottom: 8mm; font-size: 12pt; font-weight: bold; border-bottom: 1.5px solid #000; display: inline-block; width: 100%; padding-bottom: 6px;">
+      {{ L.cl_header | default('応募書類の送付につきまして') }}
+    </div>
+    {% endif %}
 
-  <div style="line-height: 2.0; font-size: 11pt; text-align: justify; white-space: pre-wrap; margin-bottom: 30mm;">
-{{ (cover_letter.content or '拝啓\n\n時下ますますご清栄のこととお慶び申し上げます。\nこの度、貴社の求人を拝见し、ぜひ応募させていただきたく、下記の通り書類を送付いたします。\n何卒ご検討いただけますよう、お願い申し上げます。\n\n敬具\n\n記\n\n1. 履歴書　　　　1通\n2. 職務経歴書　　1通') | safe }}
+    <!-- JP-NEW2: max-height prevents overflow onto page 5 -->
+    <div class="cover-letter-content" style="line-height: 1.45; font-size: 9.5pt; text-align: justify; white-space: pre-wrap;
+                max-height: 215mm; overflow: hidden; page-break-inside: avoid; break-inside: avoid;">
+      {{ (cover_letter.content | default(
+      '拝啓　時下ますますご清栄のこととお慶び申し上げます。\nこの度、貴社の求人を拝見し、ぜひ応募させていただきたく、下記の通り書類送付いたします。\n何卒ご検討いただけますよう、お願い申し上げます。\n\n敬具\n\n記\n\n1. 履歴書　　　　1通\n2. 職務経歴书　　1通') ) | safe }}
+    </div>
+    <!-- JP-NEW3/JP-NEW11: contact block removed — sign-off is already embedded
+         in cover_letter.content by _assemble_letter() via SIGNOFFS. -->
   </div>
-
-  <div style="text-align: right; font-size: 11pt; line-height: 1.6;">
-    〒{{ profile.postal_code | default('000-0000') }}<br>
-    {{ profile.address }}<br>
-    <span style="font-size: 14pt; font-weight: bold;">{{ profile.name }}</span><br>
-    {{ L.phone }}: {{ profile.phone }}<br>
-    {{ L.email }}: {{ profile.email }}
-  </div>
-</div>
-{% endif %}
+  {% endif %}
 
 </body>
+
 </html>

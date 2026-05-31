@@ -25,30 +25,45 @@ class GroqError(Exception):
         self.error_type = error_type
         super().__init__(self.message)
 
-async def call_groq_json(system_prompt: str, user_prompt: str) -> dict:
+async def call_groq_json(system_prompt: str, user_prompt: str, model_override: Optional[str] = None) -> dict:
     """
-    Helper to call Groq API with JSON response format.
-    Uses OpenAI-compatible endpoint.
+    Helper to call Groq API with JSON response format, supporting multi-tier fallbacks.
+    Uses OpenAI-compatible endpoint with strict JSON mode constraint.
     """
     if not GROQ_API_KEY:
         return {"error": "GROQ_API_KEY not configured"}
 
-    try:
-        response = await client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.2
-        )
-        content = response.choices[0].message.content
-        return json.loads(content)
-    except Exception as e:
-        print(f"Groq API Error: {e}")
-        err_info = handle_groq_error(e)
-        raise GroqError(err_info["error"], err_info["solution"], err_info["type"])
+    # Define model tiers for JSON mode (only active ones on Groq)
+    model_tiers = [model_override] if model_override else [
+        GROQ_MODEL_70B,           # Llama-3.3-70B-Versatile
+        GROQ_MODEL                 # Llama-3.1-8B-Instant
+    ]
+
+    last_error = None
+    for model_name in model_tiers:
+        try:
+            print(f"Calling Groq JSON API model: {model_name}...")
+            response = await client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.2,
+                max_tokens=4096
+            )
+            content = response.choices[0].message.content
+            return json.loads(content)
+        except Exception as e:
+            print(f"Groq JSON API Error on {model_name}: {e}")
+            last_error = e
+            # Move to next tier if rate limited or busy or failed
+            print(f"Failed JSON completion on {model_name}. Moving to next fallback tier...")
+            continue
+
+    err_info = handle_groq_error(last_error)
+    raise GroqError(err_info["error"], err_info["solution"], err_info["type"])
 
 def handle_groq_error(e: Exception) -> dict:
     """Translates technical Groq/OpenAI errors into user-friendly solutions."""
@@ -219,40 +234,41 @@ Rules:
 
 async def call_groq(prompt: str) -> str:
     """
-    Generic helper to call Groq API for plain text responses.
+    Generic helper to call Groq API for plain text responses with robust fallback.
     """
     if not GROQ_API_KEY:
         return "GROQ API Key not configured."
 
-    model_to_use = GROQ_MODEL_70B if "cover letter" in prompt.lower() else GROQ_MODEL
-    try:
-        response = await client.chat.completions.create(
-            model=model_to_use,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.5
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print(f"Groq API Plain Text Error on {model_to_use}: {e}")
-        if model_to_use == GROQ_MODEL_70B:
-            print("Falling back to llama-3.1-8b-instant...")
-            try:
-                response = await client.chat.completions.create(
-                    model=GROQ_MODEL,
-                    messages=[
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.5
-                )
-                return response.choices[0].message.content
-            except Exception as fallback_e:
-                print(f"Fallback Groq API Plain Text Error: {fallback_e}")
-                e = fallback_e
+    is_translation_task = ("cover letter" in prompt.lower() or "translate" in prompt.lower() or "translator" in prompt.lower())
+    
+    # Tiered models in order of translation strength and preference
+    model_tiers = [
+        GROQ_MODEL_70B,           # Tier 1: Llama-3.3-70B-Versatile
+        "mixtral-8x7b-32768",      # Tier 2: Mixtral-8x7B (MoE, strong translator)
+        GROQ_MODEL                 # Tier 3: Llama-3.1-8B-Instant
+    ] if is_translation_task else [GROQ_MODEL]
 
-        err_info = handle_groq_error(e)
-        raise GroqError(err_info["error"], err_info["solution"], err_info["type"])
+    last_error = None
+    for model_name in model_tiers:
+        try:
+            print(f"Calling Groq API model: {model_name}...")
+            response = await client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.5
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Groq API Error on {model_name}: {e}")
+            last_error = e
+            # Move to next fallback tier for any error (rate limit, decommission, timeout)
+            print(f"Failed on {model_name}. Moving to next fallback tier...")
+            continue
+
+    err_info = handle_groq_error(last_error)
+    raise GroqError(err_info["error"], err_info["solution"], err_info["type"])
 
 async def summarize_about(about_list: list) -> str:
     """

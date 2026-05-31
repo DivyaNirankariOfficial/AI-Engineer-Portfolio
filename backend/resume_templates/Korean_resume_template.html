@@ -31,6 +31,9 @@
             line-height: 1.6;
             color: #222;
             background: #fff;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
         }
 
         .page {
@@ -109,6 +112,8 @@
             width: 32mm;
             height: 42mm;
             margin-left: 20px;
+            flex-shrink: 0;
+            overflow: hidden;
         }
 
         .photo-box {
@@ -120,12 +125,15 @@
             align-items: center;
             justify-content: center;
             background: #f9fafb;
+            max-width: 32mm;
+            max-height: 42mm;
         }
 
         .photo-box img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
 
         /* ── Section Titles ── */
@@ -148,15 +156,18 @@
             width: 100%;
             page-break-inside: auto !important;
         }
+
         tr {
             page-break-inside: avoid !important;
             page-break-after: auto !important;
         }
 
-        td, th {
+        td,
+        th {
             padding: 6px 0;
             vertical-align: top;
-            border: none; /* Kowork style uses borderless rows */
+            border: none;
+            /* Kowork style uses borderless rows */
         }
 
         /* ── Content Components ── */
@@ -180,14 +191,16 @@
             font-weight: 400;
             margin-left: 4px;
             white-space: nowrap;
-            display: inline-block; /* Ensure it stays with the date if possible */
+            display: inline-block;
+            /* Ensure it stays with the date if possible */
         }
 
         .main-content {
             flex: 1;
         }
 
-        .institution-name, .company-name {
+        .institution-name,
+        .company-name {
             font-size: 10.5pt;
             font-weight: 700;
             margin-bottom: 2px;
@@ -208,8 +221,15 @@
             margin-left: 5px;
         }
 
-        .badge-current { background: #dcfce7; color: #166534; }
-        .badge-past { background: #f3f4f6; color: #4b5563; }
+        .badge-current {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-past {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
 
         ul.bullets {
             margin: 6px 0 0 16px;
@@ -226,6 +246,7 @@
         .skill-table {
             border: 1px solid #e5e7eb;
         }
+
         .skill-table th {
             background: #f9fafb;
             padding: 8px;
@@ -233,6 +254,7 @@
             font-size: 9pt;
             text-align: left;
         }
+
         .skill-table td {
             padding: 10px 8px;
             border: 1px solid #e5e7eb;
@@ -249,9 +271,22 @@
         }
 
         /* ── Dots ── */
-        .dot-row { display: flex; gap: 4px; align-items: center; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #e5e7eb; }
-        .dot.filled { background: #374151; }
+        .dot-row {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e5e7eb;
+        }
+
+        .dot.filled {
+            background: #374151;
+        }
 
         /* ── Projects ── */
         .project-item {
@@ -259,6 +294,7 @@
             margin-bottom: 12px;
             padding: 10px;
         }
+
         .project-table th {
             width: 20%;
             background: #f9fafb;
@@ -267,6 +303,7 @@
             border: 1px solid #e5e7eb;
             font-size: 8.5pt;
         }
+
         .project-table td {
             padding: 6px 10px;
             border: 1px solid #e5e7eb;
@@ -274,13 +311,17 @@
         }
 
         /* ── Self PR ── */
-        .jagi-section { margin-bottom: 25px; }
+        .jagi-section {
+            margin-bottom: 25px;
+        }
+
         .jagi-title {
             font-size: 11pt;
             font-weight: 700;
             margin-bottom: 8px;
             color: #111;
         }
+
         .jagi-content {
             font-size: 10pt;
             line-height: 1.8;
@@ -311,18 +352,18 @@
             <div class="header-left">
                 <div class="name-block">{{ profile.name }}</div>
                 <div class="pill-container">
-                    <span class="tag-pill">{% if lang == 'ko' %}🌐 {% endif %}{{ L.overseas }}</span>
+                    <span class="tag-pill">🌐 {{ L.overseas }}</span>
                     {% if personal.korean_level %}
-                    <span class="tag-pill">{% if lang == 'ko' %}🗣 {% endif %}{{ L.korean_level }}: {{ personal.korean_level }}</span>
+                    <span class="tag-pill">🗣 {{ L.korean_level }}: {{ personal.korean_level }}</span>
                     {% endif %}
                     {% if geo_rule.show_visa and personal.visa_type %}
-                    <span class="tag-pill">{% if lang == 'ko' %}🛂 {% endif %}{{ personal.visa_type }}</span>
+                    <span class="tag-pill">🛂 {{ personal.visa_type }}</span>
                     {% endif %}
                 </div>
-                
+
                 <div style="margin-bottom:15px; font-weight:600; color:#4b5563;">
-                    {{ personal.gender }} &nbsp;|&nbsp; 
-                    {{ personal.dob }} &nbsp;|&nbsp; 
+                    {{ personal.gender }} &nbsp;|&nbsp;
+                    {{ personal.dob }} &nbsp;|&nbsp;
                     {{ personal.nationality }}
                 </div>
 
@@ -342,13 +383,26 @@
                     {% if profile.github %}
                     <div class="info-item">
                         <span class="info-label">GitHub</span>
-                        <span class="info-value"><a href="{{ profile.github }}" style="color:inherit; text-decoration:none;">{{ profile.github | replace('https://', '') }}</a></span>
+                        <span class="info-value"><a href="{{ profile.github }}"
+                                style="color:#1e40af; text-decoration:underline;">{{ profile.github | replace('https://', '')
+                                }}</a></span>
                     </div>
                     {% endif %}
                     {% if profile.linkedin %}
                     <div class="info-item">
                         <span class="info-label">LinkedIn</span>
-                        <span class="info-value"><a href="{{ profile.linkedin }}" style="color:inherit; text-decoration:none;">{{ profile.linkedin | replace('https://www.linkedin.com/in/', 'linkedin.com/in/') | replace('https://linkedin.com/in/', 'linkedin.com/in/') }}</a></span>
+                        <span class="info-value"><a href="{{ profile.linkedin }}"
+                                style="color:#1e40af; text-decoration:underline;">{{ profile.linkedin |
+                                replace('https://www.linkedin.com/in/', 'linkedin.com/in/') |
+                                replace('https://linkedin.com/in/', 'linkedin.com/in/') }}</a></span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if profile.personal.kakaotalk_id %}
+                    <div class="info-row">
+                        <span class="info-label">{{ L.kakaotalk_id }}</span>
+                        <span class="info-value">{{ profile.personal.kakaotalk_id }}</span>
+                        
                     </div>
                     {% endif %}
                 </div>
@@ -378,7 +432,8 @@
             {% for edu in education | sort(attribute='start', reverse=rev_edu) %}
             <tr class="no-break">
                 <td class="period-text">
-                    {{ edu.start_year }}/{{ '%02d' | format(edu.start_month) }} ~ {{ edu.end_year }}/{{ '%02d' | format(edu.end_month) }}
+                    {{ edu.start_year }}/{{ '%02d' | format(edu.start_month) }} ~ {{ edu.end_year }}/{{ '%02d' |
+                    format(edu.end_month) }}
                     <span class="duration-label">{{ edu.duration }}</span>
                 </td>
                 <td class="main-content">
@@ -399,8 +454,9 @@
             {% for job in experience | sort(attribute='start', reverse=rev_exp) %}
             <tr class="no-break">
                 <td class="period-text">
-                    {{ job.start_year }}/{{ '%02d' | format(job.start_month) }} ~ 
-                    {% if job.is_current %}{{ L.as_of | default('현재') }}{% else %}{{ job.end_year }}/{{ '%02d' | format(job.end_month) }}{% endif %}
+                    {{ job.start_year }}/{{ '%02d' | format(job.start_month) }} ~
+                    {% if job.is_current %}{{ L.present | default('현재') }}{% else %}{{ job.end_year }}/{{ '%02d' |
+                    format(job.end_month) }}{% endif %}
                     <span class="duration-label">{{ job.duration }}</span>
                 </td>
                 <td class="main-content">
@@ -429,19 +485,19 @@
         <div class="no-break" style="margin-top:15px;">
             <div class="section-title">{{ L.languages }}</div>
             <table style="margin-top:5px; width:100%; table-layout: fixed; border-collapse: collapse;">
-                {% for lang in languages %}
+                {% for lang_item in languages %}
                 <tr class="no-break">
-                    <td style="width:100px; font-weight:700; color:#111;">{{ lang.name }}</td>
+                    <td style="width:100px; font-weight:700; color:#111;">{{ lang_item.name }}</td>
                     <td style="width:160px;">
                         <div class="dot-row">
                             {% for i in range(5) %}
-                            <div class="dot {% if i < lang.level_dots %}filled{% endif %}"></div>
+                            <div class="dot {% if i < lang_item.level_dots %}filled{% endif %}"></div>
                             {% endfor %}
-                            <span style="font-size:8pt; color:#666; margin-left:5px;">{{ lang.level_label }}</span>
+                            <span style="font-size:8pt; color:#666; margin-left:5px;">{{ lang_item.level_label }}</span>
                         </div>
                     </td>
-                    <td style="width:150px; color:#4b5563; font-size:9pt;">{{ lang.cert | default('—') }}</td>
-                    <td style="color:#6b7280; font-size:9pt;">{{ lang.note | default('') }}</td>
+                    <td style="width:150px; color:#4b5563; font-size:9pt;">{{ lang_item.cert | default('—', true) }}</td>
+                    <td style="color:#6b7280; font-size:9pt;">{{ lang_item.note | default('—', true) }}</td>
                 </tr>
                 {% endfor %}
             </table>
@@ -471,7 +527,8 @@
                             <div class="dot {% if i < category.level_dots %}filled{% endif %}"></div>
                             {% endfor %}
                         </div>
-                        <div style="font-size:7.5pt; color:#6b7280; margin-top:3px; font-weight:500;">{{ category.level }}</div>
+                        <div style="font-size:7.5pt; color:#6b7280; margin-top:3px; font-weight:500;">{{ category.level
+                            }}</div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -493,7 +550,8 @@
                     <th style="width:15%;">{{ L.period_label }}</th>
                     <td style="width:35%;">{% if project.period %}{{ project.period }}{% else %}—{% endif %}</td>
                     <th style="width:15%;">{{ L.team_size_label }}</th>
-                    <td>{{ project.team_size if project.team_size else (L.individual if lang == 'ko' else 'Individual') }}</td>
+                    <td>{{ project.team_size if project.team_size else (L.individual if lang == 'ko' else 'Individual')
+                        }}</td>
                 </tr>
                 <tr>
                     <th>{{ L.tech_stack_label }}</th>
@@ -501,7 +559,8 @@
                 </tr>
                 <tr>
                     <th>{{ L.role_label }}</th>
-                    <td colspan="3">{{ project.role if project.role else (L.developer if lang == 'ko' else 'Developer') }}</td>
+                    <td colspan="3">{{ project.role if project.role else (L.developer if lang == 'ko' else 'Developer')
+                        }}</td>
                 </tr>
                 <tr>
                     <th>{{ L.outcomes_label }}</th>
@@ -535,7 +594,7 @@
             <table style="font-size:9pt; width:100%;">
                 {% for award in awards %}
                 <tr class="no-break">
-                    <td style="width:100px; color:#666;">{{ award.year }}/{{ '%02d' | format(award.month) }}</td>
+                    <td style="width:100px; color:#666;">{{ award.year }}{% if award.month %}/{{ '%02d' | format(award.month) }}{% endif %}</td>
                     <td style="font-weight:600;">{{ award.name }}</td>
                     <td style="text-align:right; color:#888;">{{ award.issuer | default('—') }}</td>
                 </tr>
@@ -544,7 +603,7 @@
         </div>
         {% endif %}
 
-        <!-- 연구 / 논문 -->
+        <!-- 연구 / 논문 RESEARCH BLOCK -->
         {% if research %}
         <div class="section-title">{% if lang == 'ko' %}🔬 {% endif %}{{ L.research }}</div>
         {% for item in research %}
@@ -569,44 +628,41 @@
      자기소개서 — PAGE 3 (Cover Letter)
      ================================================================ -->
     {% if include_cover %}
-    <div class="page" style="page-break-before: always; break-before: page;">
+    <div class="page" style="page-break-before: always; break-before: page; page-break-inside: avoid; break-inside: avoid;">
         <div style="text-align:center; margin-bottom:40px; margin-top:0;">
-            <div style="font-size:22pt; font-weight:800; letter-spacing:10px;">{{ L.jagi_title }}</div>
-            <div style="font-size:10pt; color:#666; margin-top:10px;">{{ profile.name }} &nbsp;|&nbsp; {{ generated_date }}</div>
+            <div style="font-size:22pt; font-weight:800; letter-spacing:{% if lang == 'ko' %}10px{% else %}2px{% endif %};">{{ L.jagi_title }}</div>
+            <!-- <div style="font-size:10pt; color:#666; margin-top:10px;">{{ profile.name }} &nbsp;|&nbsp; {{ generated_date
+                }}</div> -->
         </div>
 
         {% if cover_letter.content %}
-            <div class="jagi-content" style="white-space: pre-wrap; font-size: 10pt;">{{ cover_letter.content | safe }}</div>
+        <div class="jagi-content" style="white-space: pre-wrap; font-size: 9.5pt; line-height: 1.5; max-height: 220mm; overflow: hidden; page-break-inside: avoid; break-inside: avoid;">{{ cover_letter.content | safe }}
+        </div>
         {% else %}
-            <div class="jagi-section no-break">
-                <div class="jagi-title">1. {{ L.cl_growth }}</div>
-                <div class="jagi-content">{{ cover_letter.growth_background }}</div>
-            </div>
-
-            <div class="jagi-section no-break">
-                <div class="jagi-title">2. {{ L.cl_strengths }}</div>
-                <div class="jagi-content">{{ cover_letter.strengths_weaknesses }}</div>
-            </div>
-
-            <div class="jagi-section no-break">
-                <div class="jagi-title">3. {{ L.cl_motivation }}</div>
-                <div class="jagi-content">{{ cover_letter.motivation }}</div>
-            </div>
-
-            <div class="jagi-section no-break">
-                <div class="jagi-title">4. {{ L.cl_goals }}</div>
-                <div class="jagi-content">{{ cover_letter.goals_after_joining }}</div>
-            </div>
-        {% endif %}
-
-        <div style="text-align:center; margin-top:30mm;">
-            <div style="font-size:12pt; margin-bottom:15mm;">{{ L.confirmation_text }}</div>
-            <div style="font-size:11pt; color:#222; font-weight:600;">{{ generated_date }}</div>
-            <div style="font-size:16pt; font-weight:800; margin-top:10mm; letter-spacing:2px;">{{ L.applicant_label }} {{ profile.name }} &nbsp;&nbsp;&nbsp; {{ L.stamp_label }}</div>
+        <div class="jagi-section no-break">
+            <!-- <div class="jagi-title">1. {{ L.cl_growth }}</div> -->
+            <div class="jagi-content">{{ cover_letter.growth_background }}</div>
         </div>
 
-        <div class="footer">{{ L.end_of_doc }} &nbsp;|&nbsp; {{ generated_date }} &nbsp;|&nbsp; {{ profile.name }}</div>
+        <div class="jagi-section no-break">
+            <!-- <div class="jagi-title">2. {{ L.cl_strengths }}</div> -->
+            <div class="jagi-content">{{ cover_letter.strengths_weaknesses }}</div>
+        </div>
+
+        <div class="jagi-section no-break">
+            <!-- <div class="jagi-title">3. {{ L.cl_motivation }}</div> -->
+            <div class="jagi-content">{{ cover_letter.motivation }}</div>
+        </div>
+
+        <div class="jagi-section no-break">
+            <!-- <div class="jagi-title">4. {{ L.cl_goals }}</div> -->
+            <div class="jagi-content">{{ cover_letter.goals_after_joining }}</div>
+        </div>
+        {% endif %}
+        <!-- KR-NEW6/KR-NEW9: footer removed from CL page — sign-off is already
+             embedded inside cover_letter.content by _assemble_letter(). -->
     </div><!-- end page 3 (자기소개서) -->
     {% endif %}
 </body>
+
 </html>

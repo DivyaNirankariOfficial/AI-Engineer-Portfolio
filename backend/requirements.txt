@@ -188,3 +188,4 @@ zopfli==0.4.1
 jinja2
 playwright
 nest-asyncio
+deep-translator

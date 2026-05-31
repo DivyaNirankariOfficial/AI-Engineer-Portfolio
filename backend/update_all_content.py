@@ -21,6 +21,10 @@ def update_content():
             proj['period'] = "Jun 2025 - Dec 2025"
         else:
             proj['period'] = "2024 - 2025"
+        if proj.get('description'):
+            proj['description'] = proj['description'].replace('ATS-compliant', 'ATS\u2011compliant')
+        if proj.get('summary'):
+            proj['summary'] = proj['summary'].replace('ATS-compliant', 'ATS\u2011compliant')
 
     # G7: 'RestAPIs' -> 'REST APIs'
     for job in data.get('experience', []):
@@ -49,9 +53,6 @@ def update_content():
         'CN_EN': 'Requires Z-visa sponsorship for employment in China.'
     }
 
-    # IN: Notice period
-    data['profile']['notice_period'] = "Immediately available (0 days notice period)"
-
     # UK/IN: Education Grades
     for edu in data.get('education', []):
         if "Gujarat Technological University" in edu['university']:
@@ -73,12 +74,31 @@ def update_content():
 
     # CN: Fix summary (The report says it's nonsense)
     # New Chinese Summary
-    CN_SUMMARY = "资深Python与AI/ML工程师，拥有4年机器学习系统开发经验，专注于医疗AI及生物医学信号处理。曾在Logixbuilt Infotech主导高并发REST API开发（日均请求1万+，可用性99.9%），并通过PostgreSQL优化将响应速度提升40%。独立开发基于PhysioNet数据集的ECG心脏异常检测模型，采用1D ResNet架构，F1分数达94%。具备从科研到生产环境落地的全栈能力。"
+    CN_SUMMARY = "资深Python与AI/ML工程师，专注于医疗AI及生物医学信号处理。曾在Logixbuilt Infotech主导高并发REST API开发（日均请求1万+，可用性99.9%），并通过PostgreSQL优化将响应速度提升40%。独立开发基于PhysioNet数据集的ECG心脏异常检测模型，采用1D ResNet架构，F1分数达94%。具备从科研到生产环境落地的全栈能力。"
     data['profile']['summary_zh'] = CN_SUMMARY
 
     # KR: Proper Korean Summary
-    KR_SUMMARY = "4년 이상의 실무 경험을 보유한 Python 및 AI/ML 엔지니어로, 의료 AI 및 생체 신호 처리 분야에 전문성을 갖추고 있습니다. Logixbuilt Infotech에서 일일 1만 건 이상의 요청을 처리하는 고가용성 REST API를 개발하고 PostgreSQL 쿼리 최적화를 통해 성능을 40% 향상시켰습니다. PhysioNet 데이터셋을 활용하여 94%의 F1-score를 기록한 1D ResNet 기반 ECG 심장 이상 탐지 모델을 독자적으로 개발했습니다. 연구 성과를 실제 서비스로 구현하는 데 강점이 있습니다."
+    KR_SUMMARY = "Python 및 AI/ML 엔지니어로, 의료 AI 및 생체 신호 처리 분야에 전문성을 갖추고 있습니다. Logixbuilt Infotech에서 일일 1만 건 이상의 요청을 처리하는 고가용성 REST API를 개발하고 PostgreSQL 쿼리 최적화를 통해 성능을 40% 향상시켰습니다. PhysioNet 데이터셋을 활용하여 94%의 F1-score를 기록한 1D ResNet 기반 ECG 심장 이상 탐지 모델을 독자적으로 개발했습니다. 연구 성과를 실제 서비스로 구현하는 데 강점이 있습니다."
     data['profile']['summary_ko'] = KR_SUMMARY
+
+    # Experience: Set Employment Type
+    for job in data.get('experience', []):
+        if 'freelance' in job.get('company', '').lower():
+            job['employment_type'] = "Freelance"
+        else:
+            job['employment_type'] = "Full-time"
+
+    # Skills: Set category years of experience for dynamic proficiency calculations
+    for cat in data.get('skillCategories', []):
+        label = cat.get('label', '')
+        if "Programming & Databases" in label:
+            cat['years'] = 6
+        elif "AI & Machine Learning" in label:
+            cat['years'] = 4
+        elif "Backend & Cloud" in label:
+            cat['years'] = 4
+        elif "Tools & Testing" in label:
+            cat['years'] = 3
 
     # Save to JSON
     with open('data.json', 'w', encoding='utf-8') as f:

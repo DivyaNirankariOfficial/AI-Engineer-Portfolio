@@ -25,7 +25,6 @@ const Admin = () => {
     const [previewLanguage, setPreviewLanguage] = useState('en');
     const [includeCoverLetter, setIncludeCoverLetter] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [isGeneratingCL, setIsGeneratingCL] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
     const [editingItem, setEditingItem] = useState(null); // { type, item }
 
@@ -48,7 +47,7 @@ const Admin = () => {
             if (event.data && event.data.type === 'scroll') {
                 const iframeEn = document.getElementById('verification-iframe-en');
                 const iframeTarget = document.getElementById('verification-iframe-target');
-                
+
                 if (event.data.sourceId === 'verification-iframe-en' && iframeTarget) {
                     iframeTarget.contentWindow.postMessage(event.data, '*');
                 } else if (event.data.sourceId === 'verification-iframe-target' && iframeEn) {
@@ -72,6 +71,15 @@ const Admin = () => {
             if (!copy.profile.personal) copy.profile.personal = {};
             copy.profile.personal.gender = 'Female';
             copy.profile.personal.military_service = 'No';
+            
+            // Assign unique ID to skillCategories if missing to prevent duplicate indexing
+            if (copy.skillCategories) {
+                copy.skillCategories = copy.skillCategories.map((s, idx) => ({
+                    ...s,
+                    id: s.id || `skill-cat-${idx}-${s.label?.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+                }));
+            }
+            
             setFormData(copy);
         }
     }, [data]);
@@ -280,7 +288,7 @@ const Admin = () => {
         };
 
         if (formData.about) formData.about.forEach((t, i) => sections['Summary'].push({ field: 'about', original: t }));
-        
+
         if (formData.profile?.personal) {
             const p = formData.profile.personal;
             if (p.self_pr_ja) sections['Summary'].push({ field: 'self_pr', original: p.self_pr_ja, sub: 'Short PR' });
@@ -290,7 +298,7 @@ const Admin = () => {
         if (formData.experience) {
             formData.experience.forEach((exp, i) => {
                 sections['Experience'].push({ field: 'exp_role', original: exp.role, sub: `Role (${exp.company})` });
-                if (exp.bullets) exp.bullets.forEach((b, bi) => sections['Experience'].push({ field: 'exp_bullet', original: b, sub: `Bullet ${bi+1}` }));
+                if (exp.bullets) exp.bullets.forEach((b, bi) => sections['Experience'].push({ field: 'exp_bullet', original: b, sub: `Bullet ${bi + 1}` }));
             });
         }
         if (formData.projects) {
@@ -376,7 +384,7 @@ const Admin = () => {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             showToast('PDF Synthesis Initiated', 'success');
         } catch (err) {
             showToast('Download failed', 'error');
@@ -394,7 +402,6 @@ const Admin = () => {
         { id: 'dashboard', label: 'Monitor', icon: <BarChart3 size={14} /> },
         { id: 'content', label: 'Identity', icon: <FileText size={14} /> },
         { id: 'collections', label: 'Artifacts', icon: <ListTree size={14} /> },
-        { id: 'cover_letter', label: 'Cover Letter', icon: <FileText size={14} /> },
         { id: 'preview', label: 'Resume Preview', icon: <Eye size={14} /> },
         { id: 'settings', label: 'Core', icon: <SettingsIcon size={14} /> }
     ];
@@ -410,11 +417,10 @@ const Admin = () => {
                         initial={{ opacity: 0, y: -50 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -50 }}
-                        className={`fixed top-8 left-1/2 -translate-x-1/2 px-6 py-4 font-mono text-[10px] uppercase tracking-widest z-[200] shadow-2xl border flex items-center gap-3 ${
-                            toastMessage.type === 'error' 
-                            ? 'bg-red-50 text-red-600 border-red-200' 
-                            : 'bg-warmBlack text-accent border-accent/20'
-                        }`}
+                        className={`fixed top-8 left-1/2 -translate-x-1/2 px-6 py-4 font-mono text-[10px] uppercase tracking-widest z-[200] shadow-2xl border flex items-center gap-3 ${toastMessage.type === 'error'
+                                ? 'bg-red-50 text-red-600 border-red-200'
+                                : 'bg-warmBlack text-accent border-accent/20'
+                            }`}
                     >
                         <ShieldCheck size={14} />
                         {toastMessage.text}
@@ -552,7 +558,6 @@ const Admin = () => {
                                     <h4 className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold mt-4">Global Metadata</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
-                                            { key: 'visa_status', label: 'Visa / Work Status', placeholder: 'Permanent Resident / H1-B / F-1' },
                                             { key: 'wechat_id', label: 'WeChat ID', placeholder: 'Enter WeChat ID' },
                                             { key: 'kakaotalk_id', label: 'KakaoTalk ID', placeholder: 'Enter KakaoTalk ID' },
                                             { key: 'military_service', label: 'Military Service', type: 'static', value: 'No' },
@@ -572,6 +577,34 @@ const Admin = () => {
                                             </div>
                                         ))}
                                     </div>
+                                    <h4 className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold mt-4">Regional Visa Statements</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {[
+                                            { key: 'US', label: 'USA Visa', placeholder: 'Requires H-1B visa sponsorship' },
+                                            { key: 'UK', label: 'UK Visa', placeholder: 'Requires Skilled Worker visa sponsorship' },
+                                            { key: 'DE', label: 'Germany Visa', placeholder: 'Eligible for EU Blue Card...' },
+                                            { key: 'AE', label: 'UAE Visa', placeholder: 'Requires employer-sponsored employment visa' },
+                                            { key: 'IN', label: 'India Visa', placeholder: 'Indian citizen — no visa required' },
+                                            { key: 'JP', label: 'Japan Visa', placeholder: 'Requires Engineer / Specialist in Humanities...' },
+                                            { key: 'KR', label: 'Korea Visa', placeholder: 'Requires E-7 Specially Designated Activities...' },
+                                            { key: 'CN', label: 'China Visa (中文简历)', placeholder: '需要工作签证（Z签证），需由用人单位协助办理。' },
+                                            { key: 'CN_EN', label: 'China Visa (English resume)', placeholder: 'Requires Z-visa sponsorship for employment in China.' },
+                                            { key: 'GLOBAL', label: 'Global Default Visa', placeholder: 'Relocation sponsorship required' },
+                                        ].map(field => (
+                                            <div key={field.key}>
+                                                <label className="block text-[9px] font-mono text-warmBrown/40 mb-1 uppercase tracking-widest">{field.label}</label>
+                                                <input
+                                                    className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-sans text-xs bg-transparent"
+                                                    value={formData.profile?.visa?.[field.key] || ''}
+                                                    placeholder={field.placeholder}
+                                                    onChange={e => {
+                                                        const visa = formData.profile.visa || {};
+                                                        handleChange('profile', 'visa', { ...visa, [field.key]: e.target.value });
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                     <h4 className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold mt-4">Japan Metadata (Personal)</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
@@ -585,7 +618,7 @@ const Admin = () => {
                                             { key: 'self_pr_ja', label: '自己PR 履歴書用 (Self PR for Rirekisho)', type: 'textarea' },
                                             { key: 'self_pr_ja_detailed', label: '自己PR 職務経歴書用 (Self PR for Shokumu)', type: 'textarea' },
                                             { key: 'career_summary_ja', label: '職務要約 (Career Summary)', type: 'textarea' },
-                                            { key: 'desired_conditions_ja', label: '本人希望 (Desired Conditions)', placeholder: '貴社の規定に従います。' },
+                                            { key: 'desired_conditions_ja', label: '本人希望 (Desired Conditions)', type: 'textarea', placeholder: '貴社の規定に従います。' },
                                         ].map(field => (
                                             <div key={field.key} className={field.type === 'textarea' ? "col-span-2" : ""}>
                                                 <label className="block text-[9px] font-mono text-warmBrown/40 mb-1 uppercase tracking-widest">{field.label}</label>
@@ -703,16 +736,16 @@ const Admin = () => {
                                     <h3 className="font-serif text-xl border-b border-warmBrown/5 pb-4 flex justify-between items-center italic">
                                         Narrative sequence
                                         <button
-                                             onClick={() => handleAIAction('rewrite-about', { text: formData.about.join('\n') }, (newText) => {
-                                                 const paras = newText.split('\n').filter(p => p.trim());
-                                                 // Ensure exactly 2 paragraphs
-                                                 let finalParas = paras.slice(0, 2);
-                                                 while (finalParas.length < 2) finalParas.push('Narrative signal pending...');
-                                                 setFormData(p => ({ ...p, about: finalParas }));
-                                                 showToast('Narrative Sequence Enriched', 'success');
-                                             })}
-                                             className="text-accent font-mono text-[9px] hover:underline uppercase tracking-widest"
-                                         >✦ enrich sequence</button>
+                                            onClick={() => handleAIAction('rewrite-about', { text: formData.about.join('\n') }, (newText) => {
+                                                const paras = newText.split('\n').filter(p => p.trim());
+                                                // Ensure exactly 2 paragraphs
+                                                let finalParas = paras.slice(0, 2);
+                                                while (finalParas.length < 2) finalParas.push('Narrative signal pending...');
+                                                setFormData(p => ({ ...p, about: finalParas }));
+                                                showToast('Narrative Sequence Enriched', 'success');
+                                            })}
+                                            className="text-accent font-mono text-[9px] hover:underline uppercase tracking-widest"
+                                        >✦ enrich sequence</button>
                                     </h3>
                                     {formData.about.map((para, idx) => (
                                         <textarea
@@ -928,88 +961,11 @@ const Admin = () => {
                                     />
                                 </div>
                             </div>
-                             <button onClick={() => saveChanges('Artifacts deposited successfully')} className="fixed bottom-10 right-32 w-48 py-4 bg-accent text-white font-mono text-[10px] shadow-2xl z-[100] hover:bg-warmBlack transition-all uppercase tracking-widest border border-white/10">Deposit Artifacts</button>
+                            <button onClick={() => saveChanges('Artifacts deposited successfully')} className="fixed bottom-10 right-32 w-48 py-4 bg-accent text-white font-mono text-[10px] shadow-2xl z-[100] hover:bg-warmBlack transition-all uppercase tracking-widest border border-white/10">Deposit Artifacts</button>
                         </div>
                     )}
 
-                    {activeTab === 'cover_letter' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-32">
-                            <div className="bg-white p-8 border border-warmBrown/5 shadow-sm space-y-6">
-                                <h3 className="font-serif text-2xl border-b border-warmBrown/5 pb-6 flex justify-between items-center italic">
-                                    자기소개서 (Cover Letter)
-                                    <button
-                                        onClick={async () => {
-                                            setIsGeneratingCL(true);
-                                            showToast('Synthesizing Universal Cover Letter...', 'success');
-                                            try {
-                                                const res = await fetch('http://localhost:8000/api/admin/generate-cover-letter/', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({
-                                                        about: formData.about || [],
-                                                        experience: formData.experience || [],
-                                                        region: previewRegion,
-                                                        lang: previewLanguage
-                                                    })
-                                                });
-                                                const cl = await res.json();
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    cover_letter: {
-                                                        ...(prev.cover_letter || {}),
-                                                        ...cl
-                                                    },
-                                                    // Map Japanese specific PR if returned
-                                                    personal: cl.self_pr_ja ? { ...(prev.personal || {}), self_pr_ja: cl.self_pr_ja } : prev.personal
-                                                }));
-                                                showToast('Cover Letter Synthesized Successfully');
-                                            } catch (err) {
-                                                showToast('AI Synthesis Failed: ' + err.message, 'error');
-                                            } finally {
-                                                setIsGeneratingCL(false);
-                                            }
-                                        }}
-                                        disabled={isGeneratingCL}
-                                        className={`bg-accent text-white px-6 py-2 font-mono text-[10px] uppercase tracking-widest hover:bg-warmBlack transition-all flex items-center gap-2 rounded-lg ${isGeneratingCL ? 'animate-pulse opacity-50' : ''}`}
-                                    >
-                                        {isGeneratingCL ? '✦ Processing Signal...' : '✦ Generate AI Version'}
-                                    </button>
-                                </h3>
 
-                                <div className="grid grid-cols-1 gap-8">
-                                    {/* Korean Specific Sections */}
-                                    <div className="pt-8 border-t border-warmBrown/5 space-y-8">
-                                        <h4 className="font-mono text-[10px] text-warmBrown/30 uppercase tracking-[0.3em]">Korean Specialty Sections (자기소개서)</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {[
-                                                { id: 'growth_background', label: '1. 성장과정 (Growth)' },
-                                                { id: 'strengths_weaknesses', label: '2. 장단점 (Traits)' },
-                                                { id: 'motivation', label: '3. 지원동기 (Motivation)' },
-                                                { id: 'goals_after_joining', label: '4. 포부 (Goals)' }
-                                            ].map(section => (
-                                                <div key={section.id} className="space-y-3">
-                                                    <label className="block text-[9px] font-mono text-warmBrown/40 uppercase tracking-widest">{section.label}</label>
-                                                    <textarea
-                                                        className="w-full border border-warmBrown/10 p-4 focus:outline-none focus:border-accent font-serif text-[13px] h-40 bg-ivory/5 leading-relaxed"
-                                                        value={formData.cover_letter?.[section.id] || ''}
-                                                        onChange={e => setFormData(prev => ({
-                                                            ...prev,
-                                                            cover_letter: {
-                                                                ...(prev.cover_letter || {}),
-                                                                [section.id]: e.target.value
-                                                            }
-                                                        }))}
-                                                        placeholder={`[Korean ${section.id}]`}
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onClick={() => saveChanges('Cover Letter archived successfully')} className="w-full py-4 bg-warmBrown text-ivory font-mono text-[10px] uppercase tracking-[0.3em] hover:bg-black transition-all rounded-xl shadow-lg">Archive Global Cover Letter</button>
-                            </div>
-                        </div>
-                    )}
 
                     {activeTab === 'preview' && (
                         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 h-[88vh]">
@@ -1018,7 +974,7 @@ const Admin = () => {
                                 <div className="flex items-center gap-6">
                                     <div className="flex flex-col gap-1.5">
                                         <label className="font-mono text-[8px] uppercase tracking-[0.3em] text-accent font-bold">Country Context</label>
-                                        <select 
+                                        <select
                                             className="border-none py-1 focus:outline-none focus:ring-0 font-serif text-xl bg-transparent italic text-warmBrown cursor-pointer hover:text-accent transition-all"
                                             value={previewCountry}
                                             onChange={(e) => {
@@ -1032,6 +988,8 @@ const Admin = () => {
                                                     setPreviewRegion('international');
                                                     setIncludeCoverLetter(false);
                                                 }
+                                                // Default all resume previews to English
+                                                setPreviewLanguage('en');
                                             }}
                                         >
                                             <option value="usa">USA (Standard ATS)</option>
@@ -1046,31 +1004,13 @@ const Admin = () => {
                                         </select>
                                     </div>
 
-                                    <div className="h-10 w-px bg-warmBrown/10" />
 
-                                    <div className="flex flex-col gap-1.5">
-                                        <label className="font-mono text-[8px] uppercase tracking-[0.3em] text-accent font-bold">Language</label>
-                                        <select 
-                                            className="border-none py-1 focus:outline-none focus:ring-0 font-serif text-lg bg-transparent italic text-warmBrown/60 cursor-pointer hover:text-accent transition-all"
-                                            value={previewLanguage}
-                                            onChange={(e) => {
-                                                setIsRefreshing(true);
-                                                setPreviewLanguage(e.target.value);
-                                            }}
-                                        >
-                                            <option value="en">English (Global)</option>
-                                            <option value="ko">Korean (한국어)</option>
-                                            <option value="ja">Japanese (日本語)</option>
-                                            <option value="zh">Chinese (简体中文)</option>
-                                            <option value="de">German (Deutsch)</option>
-                                        </select>
-                                    </div>
 
                                     <div className="h-10 w-px bg-warmBrown/10" />
 
                                     <div className="flex items-center gap-3 bg-ivory/20 px-4 py-2 rounded-lg border border-warmBrown/5">
                                         <label className="font-mono text-[8px] uppercase tracking-widest text-warmBrown/40">Cover Letter</label>
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 setIsRefreshing(true);
                                                 setIncludeCoverLetter(!includeCoverLetter);
@@ -1083,7 +1023,7 @@ const Admin = () => {
                                 </div>
 
                                 <div className="ml-auto flex items-center gap-4">
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             setIsRefreshing(true);
                                             const iframe = document.getElementById('preview-iframe');
@@ -1095,7 +1035,7 @@ const Admin = () => {
                                         <RefreshCw size={16} />
                                     </button>
 
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             navigator.clipboard.writeText(`http://localhost:8000/api/resume/preview/${previewCountry}?lang=${previewLanguage}&cover=${includeCoverLetter}`);
                                             showToast('Preview link copied to clipboard');
@@ -1108,7 +1048,7 @@ const Admin = () => {
 
                                     <div className="h-10 w-px bg-warmBrown/10 mx-2" />
 
-                                    <button 
+                                    <button
                                         onClick={handleExportClick}
                                         disabled={isDownloading}
                                         className={`flex items-center gap-4 px-8 py-3.5 bg-warmBrown text-ivory font-mono text-[11px] uppercase tracking-[0.25em] hover:bg-black transition-all shadow-xl hover:shadow-black/20 group rounded-lg ${isDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1156,9 +1096,9 @@ const Admin = () => {
                                                 </div>
                                             </div>
                                         )}
-                                        <iframe 
+                                        <iframe
                                             id="preview-iframe"
-                                            src={`http://localhost:8000/api/resume/preview/${previewCountry}?lang=${previewLanguage}&cover=${includeCoverLetter}`} 
+                                            src={`http://localhost:8000/api/resume/preview/${previewCountry}?lang=${previewLanguage}&cover=${includeCoverLetter}`}
                                             className="w-full h-full border-none bg-white custom-scrollbar"
                                             onLoad={() => setIsRefreshing(false)}
                                             title="Resume Preview"
@@ -1185,7 +1125,7 @@ const Admin = () => {
                                                 <span className="text-warmBrown/40 uppercase">Template</span>
                                                 <span className="text-warmBrown">v8.2 Final</span>
                                             </div>
-                                            
+
                                             <div className="pt-2 border-t border-warmBrown/5 space-y-2">
                                                 <div className="flex items-center justify-between text-[9px] font-mono">
                                                     <span className="text-warmBrown/40">PHOTO POLICY</span>
@@ -1216,7 +1156,7 @@ const Admin = () => {
                                                     <span className={`font-mono text-[10px] font-bold ${atsScore > 80 ? 'text-emerald-600' : atsScore > 50 ? 'text-amber-600' : 'text-red-500'}`}>{atsScore} / 100</span>
                                                 </div>
                                                 <div className="w-full h-2 bg-warmBrown/5 rounded-full overflow-hidden p-[1px]">
-                                                    <div 
+                                                    <div
                                                         className={`h-full transition-all duration-1000 rounded-full relative ${atsScore > 80 ? 'bg-emerald-500' : atsScore > 50 ? 'bg-amber-500' : 'bg-red-500'}`}
                                                         style={{ width: `${atsScore}%` }}
                                                     >
@@ -1239,10 +1179,10 @@ const Admin = () => {
                                     <div className="bg-warmBrown/5 p-6 border border-warmBrown/10 rounded-xl space-y-3">
                                         <h4 className="font-serif text-sm italic text-warmBrown">Quick Tips</h4>
                                         <p className="text-[10px] text-warmBrown/80 leading-relaxed font-sans font-medium">
-                                            {previewCountry === 'usa' ? 'USA ATS format strictly forbids photos and DOB to comply with non-bias hiring laws.' : 
-                                             previewCountry === 'korea' ? 'South Korea (Kowork) style includes personal photos and specific dual-column sorting logic.' : 
-                                             previewCountry === 'japan' ? 'Japan (Rirekisho) requires ERA-based dates and specific marital status indicators.' :
-                                             'Regional layout rules applied. Sorting and localization labels are dynamically injected.'}
+                                            {previewCountry === 'usa' ? 'USA ATS format strictly forbids photos and DOB to comply with non-bias hiring laws.' :
+                                                previewCountry === 'korea' ? 'South Korea (Kowork) style includes personal photos and specific dual-column sorting logic.' :
+                                                    previewCountry === 'japan' ? 'Japan (Rirekisho) requires ERA-based dates and specific marital status indicators.' :
+                                                        'Regional layout rules applied. Sorting and localization labels are dynamically injected.'}
                                         </p>
                                     </div>
                                 </div>
@@ -1279,7 +1219,7 @@ const Admin = () => {
                                     <h3 className="font-serif text-3xl italic text-warmBrown">Visual Architecture</h3>
                                     <p className="font-mono text-[9px] uppercase tracking-widest text-warmBrown/40">Canvas & Rendering Controls</p>
                                 </div>
-                                
+
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center bg-ivory/40 p-6 border border-warmBrown/5 rounded-2xl hover:border-accent/20 transition-all group">
                                         <div className="flex flex-col gap-1">
@@ -1338,12 +1278,12 @@ const Admin = () => {
                                 <form onSubmit={handleCommand} className="relative">
                                     <div className="absolute left-0 top-3 text-accent font-mono text-xs opacity-50">&gt;</div>
                                     <input
-                                         type="text"
-                                         value={command}
-                                         onChange={e => setCommand(e.target.value)}
-                                         className="w-full bg-transparent border-none focus:ring-0 font-mono text-xs text-warmBrown placeholder-ivory/20 pb-4"
-                                         placeholder="Input sequence command..."
-                                     />
+                                        type="text"
+                                        value={command}
+                                        onChange={e => setCommand(e.target.value)}
+                                        className="w-full bg-transparent border-none focus:ring-0 font-mono text-xs text-warmBrown placeholder-ivory/20 pb-4"
+                                        placeholder="Input sequence command..."
+                                    />
                                     <button type="submit" className="absolute right-0 bottom-2 text-accent font-mono text-[9px] uppercase tracking-widest hover:text-white transition-colors">Execute</button>
                                 </form>
 
@@ -1411,7 +1351,7 @@ const Admin = () => {
                                             >✦ generate bullets</button>
                                         </div>
                                         <textarea className="w-full border border-warmBrown/10 p-4 focus:outline-none focus:border-accent font-sans text-sm h-32" placeholder="Bullets (One per line)" value={(editingItem.item.bullets || []).join('\n')} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, bullets: e.target.value.split('\n').filter(l => l.trim() !== '') } })} />
-                                        
+
                                         <h4 className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold mt-4 pt-4 border-t border-warmBrown/10">Japan Metadata</h4>
                                         <div className="grid grid-cols-2 gap-4">
                                             <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" placeholder="部署名 (Department)" value={editingItem.item.department || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, department: e.target.value } })} />
@@ -1454,25 +1394,31 @@ const Admin = () => {
                                 {editingItem.type === 'projects' && (
                                     <>
                                         <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Project Name" defaultValue={editingItem.item.name} onChange={e => editingItem.item.name = e.target.value} />
+                                        <div className="grid grid-cols-3 gap-4">
+                                            <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-sans text-xs" placeholder="Role (e.g. ML Developer)" defaultValue={editingItem.item.role} onChange={e => editingItem.item.role = e.target.value} />
+                                            <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-sans text-xs" placeholder="Period (e.g. 2023.01 - 2023.06)" defaultValue={editingItem.item.period} onChange={e => editingItem.item.period = e.target.value} />
+                                            <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-sans text-xs" placeholder="Team Size (e.g. 3名 / Individual)" defaultValue={editingItem.item.team_size} onChange={e => editingItem.item.team_size = e.target.value} />
+                                        </div>
                                         <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-sans text-xs" placeholder="Tech Stack (Comma Separated)" defaultValue={editingItem.item.techStack?.join(', ')} onChange={e => editingItem.item.techStack = e.target.value.split(',').map(s => s.trim()).filter(s => s)} />
                                         <div className="grid grid-cols-2 gap-4">
                                             <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" placeholder="GitHub Link" defaultValue={editingItem.item.github} onChange={e => editingItem.item.github = e.target.value} />
                                             <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" placeholder="Live Link" defaultValue={editingItem.item.demo} onChange={e => editingItem.item.demo = e.target.value} />
                                         </div>
-                                        <textarea className="w-full border border-warmBrown/10 p-4 focus:outline-none focus:border-accent font-sans text-sm h-32" placeholder="Project Description" defaultValue={editingItem.item.description} onChange={e => editingItem.item.description = e.target.value} />
-                                        
+                                        <textarea className="w-full border border-warmBrown/10 p-4 focus:outline-none focus:border-accent font-sans text-sm h-24" placeholder="Project Description" defaultValue={editingItem.item.description} onChange={e => editingItem.item.description = e.target.value} />
+                                        <textarea className="w-full border border-warmBrown/10 p-4 focus:outline-none focus:border-accent font-sans text-sm h-24" placeholder="Outcomes & Key Achievements (Shown on Shokumu resume)" defaultValue={editingItem.item.summary} onChange={e => editingItem.item.summary = e.target.value} />
+
                                         <div className="mt-4 p-4 border border-warmBrown/10 bg-ivory/20 space-y-4">
                                             <h4 className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold">Image Override</h4>
                                             <p className="text-[9px] font-sans text-warmBrown/60">Upload an image or provide a URL to override the auto-detected GitHub README image.</p>
-                                            
+
                                             {editingItem.item.image_override && (
                                                 <div className="h-32 bg-white border border-warmBrown/10 flex items-center justify-center overflow-hidden">
                                                     <img src={editingItem.item.image_override.startsWith('http') ? editingItem.item.image_override : `http://localhost:8000/${editingItem.item.image_override}`} alt="Preview" className="max-h-full object-contain" />
                                                 </div>
                                             )}
-                                            
+
                                             <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" placeholder="Image URL (http://...)" value={editingItem.item.image_override || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, image_override: e.target.value } })} />
-                                            
+
                                             <div className="flex items-center gap-4">
                                                 <input
                                                     type="file"
@@ -1538,18 +1484,18 @@ const Admin = () => {
                                 )}
 
                                 {editingItem.type === 'languages' && (
-                                     <div className="space-y-6">
-                                         {/* New Language Wizard */}
-                                         {(!editingItem.item.id && (!editingItem.item.wizardStep || editingItem.item.wizardStep === 1)) && (
-                                             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                                                 <label className="font-mono text-[10px] uppercase tracking-widest text-warmBrown/40">Step 1: Language Identity</label>
-                                                 <input 
-                                                    className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif text-xl" 
-                                                    placeholder="Language Name (e.g. Japanese)" 
-                                                    defaultValue={editingItem.item.name} 
-                                                    onChange={e => { editingItem.item.name = e.target.value; setEditingItem({...editingItem}); }} 
-                                                 />
-                                                 <button 
+                                    <div className="space-y-6">
+                                        {/* New Language Wizard */}
+                                        {(!editingItem.item.id && (!editingItem.item.wizardStep || editingItem.item.wizardStep === 1)) && (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                                <label className="font-mono text-[10px] uppercase tracking-widest text-warmBrown/40">Step 1: Language Identity</label>
+                                                <input
+                                                    className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif text-xl"
+                                                    placeholder="Language Name (e.g. Japanese)"
+                                                    defaultValue={editingItem.item.name}
+                                                    onChange={e => { editingItem.item.name = e.target.value; setEditingItem({ ...editingItem }); }}
+                                                />
+                                                <button
                                                     onClick={() => {
                                                         const exists = formData.languages?.some(l => l.name?.toLowerCase() === editingItem.item.name?.toLowerCase());
                                                         if (exists) {
@@ -1560,74 +1506,78 @@ const Admin = () => {
                                                     }}
                                                     disabled={!editingItem.item.name}
                                                     className="px-6 py-2 bg-accent text-white font-mono text-[9px] uppercase tracking-widest hover:bg-black transition-all disabled:opacity-30"
-                                                 >Next: Certification Query</button>
-                                             </div>
-                                         )}
+                                                >Next: Certification Query</button>
+                                            </div>
+                                        )}
 
-                                         {(!editingItem.item.id && editingItem.item.wizardStep === 2) && (
-                                             <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-                                                 <div className="bg-ivory/30 p-8 border border-warmBrown/5 text-center space-y-4">
-                                                     <h4 className="font-serif text-lg italic">Do you hold a formal certification or exam score for {editingItem.item.name}?</h4>
-                                                     <div className="flex justify-center gap-4">
-                                                         <button 
+                                        {(!editingItem.item.id && editingItem.item.wizardStep === 2) && (
+                                            <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                                                <div className="bg-ivory/30 p-8 border border-warmBrown/5 text-center space-y-4">
+                                                    <h4 className="font-serif text-lg italic">Do you hold a formal certification or exam score for {editingItem.item.name}?</h4>
+                                                    <div className="flex justify-center gap-4">
+                                                        <button
                                                             onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, wizardStep: 4, hasCert: true } })}
                                                             className="px-8 py-3 bg-warmBrown text-ivory font-mono text-[10px] uppercase tracking-widest hover:bg-black transition-all"
-                                                         >Yes, I have proof</button>
-                                                         <button 
+                                                        >Yes, I have proof</button>
+                                                        <button
                                                             onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, wizardStep: 3, hasCert: false } })}
                                                             className="px-8 py-3 border border-warmBrown/20 text-warmBrown font-mono text-[10px] uppercase tracking-widest hover:bg-ivory transition-all"
-                                                         >No, general proficiency</button>
-                                                     </div>
-                                                 </div>
-                                                 <button onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, wizardStep: 1 } })} className="text-[9px] font-mono text-warmBrown/30 uppercase hover:text-accent tracking-widest">← Back to Identity</button>
-                                             </div>
-                                         )}
+                                                        >No, general proficiency</button>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, wizardStep: 1 } })} className="text-[9px] font-mono text-warmBrown/30 uppercase hover:text-accent tracking-widest">← Back to Identity</button>
+                                            </div>
+                                        )}
 
-                                         {(!editingItem.item.id && editingItem.item.wizardStep === 3) && (
-                                             <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                                                 <label className="font-mono text-[10px] uppercase tracking-widest text-warmBrown/40">Proficiency Calibration</label>
-                                                 <div className="grid grid-cols-2 gap-4">
-                                                     <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" placeholder="Level (e.g. Native)" defaultValue={editingItem.item.level} onChange={e => { editingItem.item.level = e.target.value; setEditingItem({...editingItem}); }} />
-                                                     <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" type="number" placeholder="Percentage (0-100)" defaultValue={editingItem.item.percentage} onChange={e => { editingItem.item.percentage = Number(e.target.value); setEditingItem({...editingItem}); }} />
-                                                 </div>
-                                                 <button onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, wizardStep: 2 } })} className="text-[9px] font-mono text-warmBrown/30 uppercase hover:text-accent tracking-widest block">← Back to Choice</button>
-                                             </div>
-                                         )}
+                                        {(!editingItem.item.id && editingItem.item.wizardStep === 3) && (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                                                <label className="font-mono text-[10px] uppercase tracking-widest text-warmBrown/40">Proficiency Calibration</label>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" placeholder="Level (e.g. Native)" defaultValue={editingItem.item.level} onChange={e => { editingItem.item.level = e.target.value; setEditingItem({ ...editingItem }); }} />
+                                                    <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" type="number" placeholder="Percentage (0-100)" defaultValue={editingItem.item.percentage} onChange={e => { editingItem.item.percentage = Number(e.target.value); setEditingItem({ ...editingItem }); }} />
+                                                </div>
+                                                <button onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, wizardStep: 2 } })} className="text-[9px] font-mono text-warmBrown/30 uppercase hover:text-accent tracking-widest block">← Back to Choice</button>
+                                            </div>
+                                        )}
 
-                                         {(!editingItem.item.id && editingItem.item.wizardStep === 4) && (
-                                             <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                                                 <label className="font-mono text-[10px] uppercase tracking-widest text-warmBrown/40">Certification Registry</label>
-                                                 <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Exam/Certification Name (e.g. JLPT N2)" defaultValue={editingItem.item.exam_name} onChange={e => { editingItem.item.exam_name = e.target.value; setEditingItem({...editingItem}); }} />
-                                                 <div className="grid grid-cols-3 gap-4">
-                                                     <div className="flex flex-col gap-1">
-                                                        <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" type="date" placeholder="Date" defaultValue={editingItem.item.date} onChange={e => { editingItem.item.date = e.target.value; setEditingItem({...editingItem}); }} />
+                                        {(!editingItem.item.id && editingItem.item.wizardStep === 4) && (
+                                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
+                                                <label className="font-mono text-[10px] uppercase tracking-widest text-warmBrown/40">Certification Registry</label>
+                                                <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Exam/Certification Name (e.g. JLPT N2)" defaultValue={editingItem.item.exam_name} onChange={e => { editingItem.item.exam_name = e.target.value; setEditingItem({ ...editingItem }); }} />
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div className="flex flex-col gap-1">
+                                                        <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" type="date" placeholder="Date" defaultValue={editingItem.item.date} onChange={e => { editingItem.item.date = e.target.value; setEditingItem({ ...editingItem }); }} />
                                                         {editingItem.item.date && new Date(editingItem.item.date) > new Date() && (
                                                             <span className="text-[8px] text-red-500 font-mono uppercase tracking-tighter">Must be past date</span>
                                                         )}
-                                                     </div>
-                                                     <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" placeholder="Score" defaultValue={editingItem.item.score} onChange={e => { editingItem.item.score = e.target.value; setEditingItem({...editingItem}); }} />
-                                                     <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" placeholder="Resulting Level" defaultValue={editingItem.item.level} onChange={e => { editingItem.item.level = e.target.value; setEditingItem({...editingItem}); }} />
-                                                 </div>
-                                                 <button onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, wizardStep: 2 } })} className="text-[9px] font-mono text-warmBrown/30 uppercase hover:text-accent tracking-widest block">← Back to Choice</button>
-                                             </div>
-                                         )}
+                                                    </div>
+                                                    <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" placeholder="Score" defaultValue={editingItem.item.score} onChange={e => { editingItem.item.score = e.target.value; setEditingItem({ ...editingItem }); }} />
+                                                    <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-[10px]" placeholder="Resulting Level" defaultValue={editingItem.item.level} onChange={e => { editingItem.item.level = e.target.value; setEditingItem({ ...editingItem }); }} />
+                                                </div>
+                                                <button onClick={() => setEditingItem({ ...editingItem, item: { ...editingItem.item, wizardStep: 2 } })} className="text-[9px] font-mono text-warmBrown/30 uppercase hover:text-accent tracking-widest block">← Back to Choice</button>
+                                            </div>
+                                        )}
 
-                                         {/* Existing Edit View */}
-                                         {editingItem.item.id && (
-                                             <>
-                                                 <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Language Name" defaultValue={editingItem.item.name} onChange={e => editingItem.item.name = e.target.value} />
-                                                 <div className="grid grid-cols-2 gap-4">
-                                                     <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" placeholder="Level (e.g. Native)" defaultValue={editingItem.item.level} onChange={e => editingItem.item.level = e.target.value} />
-                                                     <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" type="number" placeholder="Percentage" defaultValue={editingItem.item.percentage} onChange={e => editingItem.item.percentage = Number(e.target.value)} />
-                                                 </div>
-                                             </>
-                                         )}
-                                     </div>
-                                 )}
+                                        {/* Existing Edit View */}
+                                        {editingItem.item.id && (
+                                            <>
+                                                <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Language Name" defaultValue={editingItem.item.name} onChange={e => editingItem.item.name = e.target.value} />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" placeholder="Level (e.g. Native)" defaultValue={editingItem.item.level} onChange={e => editingItem.item.level = e.target.value} />
+                                                    <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" type="number" placeholder="Percentage" defaultValue={editingItem.item.percentage} onChange={e => editingItem.item.percentage = Number(e.target.value)} />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
 
                                 {editingItem.type === 'skills' && (
                                     <>
                                         <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Category Label (e.g. ML & AI)" defaultValue={editingItem.item.label} onChange={e => editingItem.item.label = e.target.value} />
+                                        <div className="flex gap-4 items-center">
+                                            <input className="flex-1 border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-sans text-xs" placeholder="Years of Experience (e.g. 5)" defaultValue={editingItem.item.years} onChange={e => editingItem.item.years = e.target.value} />
+                                            <span className="font-mono text-[9px] text-warmBrown/40 uppercase tracking-wider bg-ivory/30 px-3 py-1 border border-warmBrown/5">✓ Proficiency Auto-calculated</span>
+                                        </div>
                                         <textarea className="w-full border border-warmBrown/10 p-4 focus:outline-none focus:border-accent font-sans text-sm h-32" placeholder="Skills (Comma Separated)" defaultValue={editingItem.item.items?.join(', ')} onChange={e => editingItem.item.items = e.target.value.split(',').map(s => s.trim()).filter(s => s)} />
                                     </>
                                 )}
@@ -1673,16 +1623,16 @@ const Admin = () => {
                                         <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Platform (e.g. YouTube, Instagram, KakaoTalk)" value={editingItem.item.platform || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, platform: e.target.value } })} />
                                         <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" placeholder="URL (e.g. https://youtube.com/@handle)" value={editingItem.item.url || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, url: e.target.value } })} />
                                         <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" placeholder="Handle/Username (e.g. @divyanirankari)" value={editingItem.item.handle || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, handle: e.target.value } })} />
-                                        
+
                                         <div className="flex items-center gap-4 bg-ivory/20 p-4 border border-warmBrown/5 mt-4">
                                             <div className="flex-1">
                                                 <h4 className="font-mono text-[10px] uppercase tracking-widest text-warmBrown">Icon Signal</h4>
                                                 <p className="text-[9px] text-warmBrown/40 uppercase">Automatically mapped based on Platform name</p>
                                             </div>
                                             <div className="text-accent font-mono text-[10px] lowercase italic">
-                                                {(['github', 'linkedin', 'youtube', 'instagram', 'slack', 'skype', 'email', 'kakaotalk'].includes(editingItem.item.platform?.toLowerCase())) 
-                                                  ? '✓ Signal Match Found' 
-                                                  : '⚠ Generic Signal Active'}
+                                                {(['github', 'linkedin', 'youtube', 'instagram', 'slack', 'skype', 'email', 'kakaotalk'].includes(editingItem.item.platform?.toLowerCase()))
+                                                    ? '✓ Signal Match Found'
+                                                    : '⚠ Generic Signal Active'}
                                             </div>
                                         </div>
                                     </>
@@ -1717,7 +1667,7 @@ const Admin = () => {
                                         if (editingItem.type === 'languages' && editingItem.item.hasCert && editingItem.item.exam_name) {
                                             const certName = `${editingItem.item.exam_name} (${editingItem.item.name})`;
                                             const certYear = editingItem.item.date ? editingItem.item.date.split('-')[0] : new Date().getFullYear().toString();
-                                            
+
                                             setFormData(prev => {
                                                 const existingCerts = prev.certifications || [];
                                                 if (!existingCerts.some(c => c.name === certName)) {
@@ -1740,14 +1690,13 @@ const Admin = () => {
                                         setEditingItem(null);
                                     }}
                                     disabled={
-                                        (editingItem.type === 'languages' && !editingItem.item.id && ![3, 4].includes(editingItem.item.wizardStep)) || 
+                                        (editingItem.type === 'languages' && !editingItem.item.id && ![3, 4].includes(editingItem.item.wizardStep)) ||
                                         (editingItem.item.wizardStep === 4 && (!editingItem.item.date || new Date(editingItem.item.date) > new Date()))
                                     }
-                                    className={`w-full py-4 bg-warmBrown text-ivory font-mono text-xs uppercase tracking-[0.4em] hover:bg-black transition-all ${
-                                        ((editingItem.type === 'languages' && !editingItem.item.id && ![3, 4].includes(editingItem.item.wizardStep)) || 
-                                        (editingItem.item.wizardStep === 4 && (!editingItem.item.date || new Date(editingItem.item.date) > new Date()))) 
-                                        ? 'opacity-20 pointer-events-none' : ''
-                                    }`}
+                                    className={`w-full py-4 bg-warmBrown text-ivory font-mono text-xs uppercase tracking-[0.4em] hover:bg-black transition-all ${((editingItem.type === 'languages' && !editingItem.item.id && ![3, 4].includes(editingItem.item.wizardStep)) ||
+                                            (editingItem.item.wizardStep === 4 && (!editingItem.item.date || new Date(editingItem.item.date) > new Date())))
+                                            ? 'opacity-20 pointer-events-none' : ''
+                                        }`}
                                 >
                                     Index Artifact
                                 </button>
@@ -1791,14 +1740,14 @@ const Admin = () => {
             <AnimatePresence>
                 {showDownloadPrompt && (
                     <div className={`fixed inset-0 z-[300] flex items-center justify-center ${isVerifyingBeforeDownload ? 'p-0' : 'p-6'}`}>
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setShowDownloadPrompt(false)}
                             className="absolute inset-0 bg-warmBlack/60 backdrop-blur-md"
                         />
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1811,13 +1760,13 @@ const Admin = () => {
                                         <h3 className="font-serif text-2xl italic text-ivory">Document Localization</h3>
                                         <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-ivory/40 mt-2">Selection Required for {previewCountry.toUpperCase()}</p>
                                     </div>
-                                    
+
                                     <div className="p-8 space-y-4">
                                         <p className="font-serif text-sm text-center text-warmBrown/60 leading-relaxed mb-6">
                                             This region supports specialized layouts. Select the primary language for this application package.
                                         </p>
-                                        
-                                        <button 
+
+                                        <button
                                             onClick={handleNativeChoice}
                                             className="w-full group flex items-center justify-between p-5 border border-warmBrown/10 hover:border-accent hover:bg-accent/5 transition-all"
                                         >
@@ -1830,7 +1779,7 @@ const Admin = () => {
                                             <Eye size={16} className="text-warmBrown/10 group-hover:text-accent" />
                                         </button>
 
-                                        <button 
+                                        <button
                                             onClick={() => triggerDownload('en')}
                                             disabled={isDownloading}
                                             className={`w-full group flex items-center justify-between p-5 border border-warmBrown/10 hover:border-accent hover:bg-accent/5 transition-all ${isDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1842,7 +1791,7 @@ const Admin = () => {
                                             {isDownloading ? <RefreshCw size={16} className="animate-spin text-accent" /> : <Download size={16} className="text-warmBrown/10 group-hover:text-accent" />}
                                         </button>
 
-                                        <button 
+                                        <button
                                             onClick={() => setShowDownloadPrompt(false)}
                                             className="w-full py-4 font-mono text-[9px] uppercase tracking-widest text-warmBrown/30 hover:text-red-500 transition-colors"
                                         >
@@ -1863,18 +1812,18 @@ const Admin = () => {
                                             </div>
                                         </div>
                                         <div className="flex gap-4">
-                                            <button 
+                                            <button
                                                 onClick={() => setIsVerifyingBeforeDownload(false)}
                                                 className="px-6 py-2 border border-accent/20 text-accent font-mono text-[10px] uppercase tracking-widest hover:bg-accent hover:text-white transition-all rounded"
                                             >
                                                 Abort
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => triggerDownload(verificationLang)}
                                                 disabled={isDownloading}
                                                 className={`px-8 py-2 bg-accent text-white font-mono text-[10px] uppercase tracking-[0.25em] hover:bg-white hover:text-black transition-all flex items-center gap-2 ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
                                             >
-                                                {isDownloading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />} 
+                                                {isDownloading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
                                                 {isDownloading ? 'Processing...' : 'Confirm & Download PDF'}
                                             </button>
                                         </div>
@@ -1882,7 +1831,7 @@ const Admin = () => {
 
                                     <div className="flex-1 flex overflow-hidden">
                                         {/* Dual Resume Preview (Comparison) */}
-                                        <div className="w-[65%] h-full bg-ivory/5 p-4 overflow-hidden flex flex-col border-r border-warmBrown/10">
+                                        <div className="w-full h-full bg-ivory/5 p-4 overflow-hidden flex flex-col">
                                             <div className="flex justify-between items-center mb-4">
                                                 <div className="flex items-center gap-4">
                                                     <span className="font-mono text-[9px] text-warmBrown/40 uppercase tracking-widest flex items-center gap-2">
@@ -1900,7 +1849,7 @@ const Admin = () => {
                                                     <RefreshCw size={12} /> Refresh Previews
                                                 </button>
                                             </div>
-                                            
+
                                             <div className="flex-1 flex gap-4 overflow-hidden">
                                                 {/* English Reference */}
                                                 <div className="flex-1 flex flex-col h-full opacity-60 hover:opacity-100 transition-opacity">
@@ -1911,7 +1860,7 @@ const Admin = () => {
                                                             <div className="w-1.5 h-1.5 rounded-full bg-warmBrown/20" />
                                                         </div>
                                                     </div>
-                                                    <iframe 
+                                                    <iframe
                                                         id="verification-iframe-en"
                                                         name="verification-iframe-en"
                                                         src={`http://localhost:8000/api/resume/preview/${previewCountry}?lang=en&cover=${includeCoverLetter}&v=${Date.now()}`}
@@ -1928,7 +1877,7 @@ const Admin = () => {
                                                             <div className="w-1.5 h-1.5 rounded-full bg-accent/40" />
                                                         </div>
                                                     </div>
-                                                    <iframe 
+                                                    <iframe
                                                         id="verification-iframe-target"
                                                         name="verification-iframe-target"
                                                         src={`http://localhost:8000/api/resume/preview/${previewCountry}?lang=${verificationLang}&cover=${includeCoverLetter}&v=${Date.now()}`}
@@ -1938,68 +1887,6 @@ const Admin = () => {
                                             </div>
                                         </div>
 
-                                        {/* Translation Editor */}
-                                        <div className="w-[35%] h-full bg-white overflow-y-auto p-6 custom-scrollbar">
-                                            <div className="flex justify-between items-center mb-8 pb-4 border-b border-warmBrown/5">
-                                                <h4 className="font-serif text-xl italic">Neural Alignment (Strings)</h4>
-                                                <span className="font-mono text-[10px] bg-accent/10 text-accent px-2 py-1 uppercase">{verificationLang} Registry</span>
-                                            </div>
-                                            
-                                            <div className="space-y-8">
-                                                {Object.entries(getGroupedSections()).map(([secName, items]) => (
-                                                    <div key={secName} className="space-y-4">
-                                                        <h5 className="font-mono text-[9px] uppercase tracking-[0.3em] text-warmBrown/40 border-b border-warmBrown/5 pb-2">{secName}</h5>
-                                                        {items.map((item, idx) => {
-                                                            const trans = translations.find(t => t.field_name === item.field && t.original_text === item.original && t.locale === verificationLang);
-                                                            return (
-                                                                <div key={idx} className={`p-4 border ${trans?.is_verified ? 'border-accent/20 bg-accent/5' : 'border-warmBrown/10'} group transition-all`}>
-                                                                    <div className="flex justify-between items-center mb-2">
-                                                                        <span className="font-mono text-[7px] uppercase text-warmBrown/30">{item.sub || item.field}</span>
-                                                                        {!trans && <span className="font-mono text-[7px] text-amber-600 uppercase italic">English Source</span>}
-                                                                        {trans?.is_verified && <span className="font-mono text-[7px] text-accent uppercase font-bold">Verified</span>}
-                                                                    </div>
-                                                                    <div className="text-[10px] text-warmBrown/60 font-serif italic mb-3 line-clamp-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                                                                        {item.original}
-                                                                    </div>
-                                                                    {trans ? (
-                                                                        <textarea 
-                                                                            className="w-full bg-transparent border-none focus:ring-0 font-serif text-sm p-0 mb-3 h-auto min-h-[40px] resize-none"
-                                                                            value={trans.translated_text}
-                                                                            onChange={(e) => {
-                                                                                const updated = [...translations];
-                                                                                const tIdx = updated.findIndex(t => t.id === trans.id);
-                                                                                updated[tIdx].translated_text = e.target.value;
-                                                                                setTranslations(updated);
-                                                                            }}
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="py-4 text-center bg-warmBrown/5 border border-dashed border-warmBrown/10">
-                                                                            <p className="font-mono text-[8px] text-warmBrown/30 uppercase">Awaiting Alignment</p>
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="flex justify-end gap-2">
-                                                                        {trans && (
-                                                                            <button 
-                                                                                onClick={() => updateTranslation(trans.id, trans.translated_text, true)}
-                                                                                className="px-3 py-1 bg-warmBlack text-ivory font-mono text-[7px] uppercase tracking-widest hover:bg-accent transition-all"
-                                                                            >
-                                                                                Verify
-                                                                            </button>
-                                                                        )}
-                                                                        <button 
-                                                                            onClick={() => handleSynthesize(secName, item.field, item.original, verificationLang)}
-                                                                            className="px-3 py-1 border border-accent/30 text-accent font-mono text-[7px] uppercase tracking-widest hover:bg-accent hover:text-white transition-all flex items-center gap-1"
-                                                                        >
-                                                                            <Sparkles size={8} /> {trans ? 'Re-Synthesize' : 'Synthesize'}
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             )}

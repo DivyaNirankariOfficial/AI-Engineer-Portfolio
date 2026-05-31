@@ -1,5 +1,6 @@
 import os
 import asyncio
+import re
 from io import BytesIO
 from jinja2 import Environment, FileSystemLoader
 from playwright.sync_api import sync_playwright
@@ -15,12 +16,35 @@ TEMPLATES_DIR = os.path.join(BASE_DIR, 'resume_templates')
 env = Environment(loader=FileSystemLoader(TEMPLATES_DIR), extensions=['jinja2.ext.do'])
 
 from services.geo_rules import get_geo_rule, ATS_COUNTRIES
-from services.translations import get_labels, translate_text, translate_batch
+from services.translations import (
+    get_labels,
+    translate_text,
+    translate_batch,
+    translate_text_sync,
+    translate_batch_sync,
+    resolve_region_visa_status,
+    is_sufficiently_translated,
+)
 
 
 # Helper to normalize file paths for CSS
 def get_file_uri(rel_path):
     return "file:///" + os.path.join(TEMPLATES_DIR, rel_path).replace("\\", "/")
+
+def apply_phone_display(profile: dict) -> None:
+    """Format profile.phone as 'primary / alternate' when alternate_phone is set."""
+    phone = (profile.get('phone') or '').strip()
+    alt = (profile.get('alternate_phone') or '').strip()
+    if ' / ' in phone:
+        return
+    if '/' in phone and not alt:
+        parts = phone.split('/', 1)
+        phone, alt = parts[0].strip(), parts[1].strip()
+    if alt and alt != phone:
+        profile['phone'] = f"{phone} / {alt}"
+        profile['alternate_phone'] = alt
+    else:
+        profile['phone'] = phone
 
 def get_categorized_projects(projects):
     ai_research = []
@@ -242,6 +266,43 @@ def parse_human_date(date_str: str):
             
     return year, month, 1
 
+def calculate_proficiency(years_str: str, lang: str = "en") -> str:
+    """Dynamically calculates proficiency label based on years and target language."""
+    from services.translations import PROFICIENCY_LEVELS
+    import re
+    
+    # Normalize lang code
+    if lang == "cn": lang = "zh"
+    if lang not in ["en", "ja", "ko", "zh"]: lang = "en"
+    
+    levels = PROFICIENCY_LEVELS.get(lang, PROFICIENCY_LEVELS["en"])
+    
+    # Fallback if no years provided
+    if not years_str or str(years_str).strip() in ("", "—"):
+        return levels["experienced"] # Default to Experienced for this candidate
+    
+    # Try to find a decimal or integer number (e.g. "5", "3.5", "5+")
+    match = re.search(r"(\d+(\.\d+)?)", str(years_str))
+    if not match:
+        return levels["experienced"]
+    
+    try:
+        years = float(match.group(1))
+    except ValueError:
+        return levels["experienced"]
+    
+    # Unified Years-to-Level Logic
+    if years <= 1.0:
+        return levels["beginner"]
+    elif years <= 3.0:
+        return levels["intermediate"]
+    elif years <= 5.0:
+        return levels["experienced"]
+    elif years <= 10.0:
+        return levels["advanced"]
+    else:
+        return levels["expert"]
+
 def build_japan_context(data: dict) -> dict:
     """Builds context for Japanese resume template"""
     import copy
@@ -255,10 +316,7 @@ def build_japan_context(data: dict) -> dict:
         p["name_furigana"] = personal_data.get("name_furigana", "")
         p["email"] = p.get("email", "")
         
-        phone = p.get("phone", "")
-        if "/" in phone:
-            phone = phone.split("/")[0].strip()
-        p["phone"] = phone
+        apply_phone_display(p)
         
         p["address"] = p.get("location", "")
         p["address_furigana"] = personal_data.get("address_furigana", "")
@@ -269,6 +327,25 @@ def build_japan_context(data: dict) -> dict:
             p["nationality_display"] = personal_data.get("nationality", "India")
         # JP9: Hide postal code for overseas applicants (no Japanese postal code)
         p["postal_code"] = ""  # Always blank for overseas — hides 〒000-0000 placeholder
+
+        # Visa status translation mapping
+        personal_data["visa_status"] = (
+            (context.get('personal') or {}).get('visa_status', '').strip()
+            or resolve_region_visa_status(
+                p.get('visa', {}),
+                'JP',
+                context.get('lang', 'ja'),
+            )
+        )
+        if 'personal' not in context:
+            context['personal'] = {}
+        context['personal']['visa_status'] = personal_data["visa_status"]
+
+        if context.get('lang') == 'ja':
+            if p.get('summary_ja'):
+                p['summary'] = p['summary_ja']
+            if personal_data.get('career_summary_ja'):
+                personal_data['self_pr_ja'] = personal_data.get('career_summary_ja')
 
         gender = personal_data.get("gender", "").lower()
         L = get_labels(context.get('lang', 'ja'))
@@ -338,30 +415,61 @@ def build_japan_context(data: dict) -> dict:
         etype_raw = (exp.get('employment_type_ja') or exp.get('employment_type') or '').strip().lower()
         company_lower = exp.get('company', '').lower()
         role_lower = exp.get('role', '').lower()
-        if 'freelance' in company_lower or 'freelance' in role_lower or 'freelance' in etype_raw:
-            exp['employment_type_ja'] = 'フリーランス'
+        is_freelance = (
+            'freelance' in company_lower or 'freelancer' in company_lower or 'フリーランス' in company_lower or
+            'freelance' in role_lower or 'freelancer' in role_lower or 'フリーランス' in role_lower or
+            'freelance' in etype_raw or 'freelancer' in etype_raw or 'フリーランス' in etype_raw
+        )
+        L_exp = context.get('L', {})
+        if is_freelance:
+            exp['employment_type_ja'] = L_exp.get('freelance', 'フリーランス')
         elif not exp.get('employment_type_ja'):
-            exp['employment_type_ja'] = '正社員'
+            exp['employment_type_ja'] = L_exp.get('fulltime', '正社員')
 
-        # JP8: Use standard resignation phrase
+        # JP8: Use standard resignation phrase (rirekisho template reads resign_reason)
         if exp.get("is_current") is False:
-            exp["resign_reason_ja"] = context.get('profile', {}).get('personal', {}).get(
-                'resign_reason_standard_ja', '一身上の都合により退社'
-            )
+            if context.get('lang') == 'ja':
+                reason = exp.get("resign_reason_ja") or context.get('profile', {}).get('personal', {}).get(
+                    'resign_reason_standard_ja', '一身上の都合により退社'
+                )
+            else:
+                reason = exp.get("resign_reason") or context.get('profile', {}).get('personal', {}).get(
+                    'resign_reason_standard_en', L.get('resignation_reason', 'Resigned for personal reasons')
+                )
+            exp["resign_reason_ja"] = reason if context.get('lang') == 'ja' else exp.get('resign_reason_ja')
+            exp["resign_reason"] = reason
+
+        # Shokumu table fields — defaults when missing from source data
+        lang_code = context.get('lang', 'ja')
+        L_exp = get_labels(lang_code)
+        if not (exp.get('role') or '').strip():
+            exp['role'] = 'Developer' if lang_code == 'en' else L_exp.get('developer', '開発者')
+        if not (exp.get('team_size') or '').strip():
+            exp['team_size'] = L_exp.get('individual', '個人') if lang_code == 'ja' else 'Individual'
             
     # Map skillCategories to skills for Shokumu-keirekisho
     if "skillCategories" in context:
         new_skills = []
         L = get_labels(context.get('lang', 'ja'))
+        lang_code = context.get('lang', 'ja')
         for cat in context["skillCategories"]:
             if cat.get("visible", True):
+                # Automatically calculate proficiency based on years of experience
+                calc_level = calculate_proficiency(cat.get("years", ""), lang_code)
                 new_skills.append({
                     "name": cat.get("label", ""),
                     "items": cat.get("items", []),
                     "years": cat.get("years", "—"),
-                    "level": cat.get("level") or L.get("proficiency_label", "Proficient")
+                    "level": calc_level or cat.get("level") or L.get("proficiency_label", "Proficient")
                 })
         context["skills"] = new_skills
+
+    # JP-NEW5: Localize research status ("Writing" → "執筆中" etc.)
+    L_res = get_labels(context.get('lang', 'ja'))
+    for r in context.get('research', []):
+        raw_status = r.get('status', 'Writing')
+        if raw_status.lower() in ('writing', 'in progress'):
+            r['status'] = L_res.get('writing_status', raw_status)
         
     # Map project attributes
     for proj in context.get("projects", []):
@@ -370,26 +478,20 @@ def build_japan_context(data: dict) -> dict:
         if "description" not in proj and "summary" in proj:
             proj["description"] = proj["summary"]
             
-    # Map certifications and achievements combined chronologically
-    combined_certs = []
-    
-    # Process certifications
+    # 履歴書 免許・資格 — official licenses only (awards go on 職務経歴書)
+    license_rows = []
     for cert in context.get("certifications", []):
         year_str = cert.get("year", "")
-        # Extract the start year if it's a range
         if "–" in year_str:
             year_str = year_str.split("–")[0].strip()
         elif "-" in year_str:
             year_str = year_str.split("-")[0].strip()
-            
         y, m, _ = parse_human_date(year_str)
-        combined_certs.append({
-            "year": y,
-            "month": m,
-            "name": cert.get("name", "")
-        })
-        
-    # Process achievements (awards)
+        license_rows.append({"year": y, "month": m, "name": cert.get("name", "")})
+    license_rows.sort(key=lambda x: (x["year"], x["month"]))
+    context["certifications"] = license_rows
+
+    awards_rows = []
     for ach in context.get("achievements", []):
         if not ach.get("visible", True):
             continue
@@ -399,16 +501,26 @@ def build_japan_context(data: dict) -> dict:
             try:
                 m = int(ach["month"])
             except ValueError:
-                pass
-        combined_certs.append({
+                m = None
+        else:
+            m = None
+        awards_rows.append({
             "year": y,
             "month": m,
-            "name": ach.get("title", "")
+            "name": ach.get("title", ""),
+            "issuer": ach.get("issuer", ""),
         })
-        
-    # Sort chronologically by (year, month)
-    combined_certs.sort(key=lambda x: (x["year"], x["month"]))
-    context["certifications"] = combined_certs
+    awards_rows.sort(key=lambda x: (x["year"], x["month"]))
+    context["awards"] = awards_rows
+
+    # Expose GitHub/LinkedIn on profile for 履歴書 contact block
+    prof = context.get("profile", {})
+    if not prof.get("github") and context.get("connections"):
+        for conn in context["connections"]:
+            if conn.get("platform", "").lower() == "github" and conn.get("url"):
+                prof["github"] = conn["url"]
+            if conn.get("platform", "").lower() == "linkedin" and conn.get("url"):
+                prof["linkedin"] = conn["url"]
             
     # Include cover letter (already in context from view_data)
     if 'cover_letter' not in context:
@@ -465,14 +577,7 @@ def build_korea_context(data: dict) -> dict:
     if not profile.get('address'):
         profile['address'] = profile.get('location', '')
 
-    # ── alternate_phone — secondary phone from data ───────────────────────────
-    phone_raw = profile.get('phone', '')
-    if '/' in phone_raw:
-        parts = phone_raw.split('/', 1)
-        profile['phone'] = parts[0].strip()
-        profile['alternate_phone'] = parts[1].strip()
-    else:
-        profile['alternate_phone'] = ''
+    apply_phone_display(profile)
 
     # ── personal sub-context for template ────────────────────────────────────
     raw_personal = profile.get('personal', {})
@@ -514,7 +619,14 @@ def build_korea_context(data: dict) -> dict:
         'dob':           dob_formatted,
         'nationality':   nationality_display,
         'korean_level':  korean_level,
-        'visa_type':     raw_personal.get('visa_status', '') or profile.get('visa_info', {}).get('visaType', ''),
+        'visa_type':     (
+            (context.get('personal') or {}).get('visa_status', '').strip()
+            or resolve_region_visa_status(
+                profile.get('visa', {}),
+                'KR',
+                context.get('lang', 'ko'),
+            )
+        ),
         'summary':       profile.get('summary', ''),
         'military_service': raw_personal.get('military_service', 'No'),
     }
@@ -651,7 +763,7 @@ def build_korea_context(data: dict) -> dict:
 
         # status labels
         L = get_labels(context.get('lang', 'ko'))
-        exp['status_label'] = (L.get('current', 'Current') if exp['is_current'] else L.get('left', 'Resigned')) if context.get('lang') != 'ko' else ('재직중' if exp['is_current'] else '퇴직')
+        exp['status_label'] = (L.get('current', 'Current') if exp['is_current'] else L.get('left', 'Resigned')) if context.get('lang') != 'ko' else ('재직중' if exp['is_current'] else '퇴사')
 
         if not exp.get('bullets'):
             exp['bullets'] = [exp['description']] if exp.get('description') else []
@@ -669,9 +781,26 @@ def build_korea_context(data: dict) -> dict:
     note_map = {
         'korean': 'Currently Learning',
         'japanese': 'Currently Learning',
-        'english': 'Business Advanced',
         'hindi': 'Mother Tongue',
         'gujarati': 'Mother Tongue',
+    }
+    lang_display_ko = {
+        'english': '영어',
+        'hindi': '힌디어',
+        'gujarati': '구자라트어',
+        'korean': '한국어',
+        'japanese': '일본어',
+        'chinese': '중국어',
+        'mandarin': '중국어',
+    }
+    lang_display_en = {
+        'english': 'English',
+        'hindi': 'Hindi',
+        'gujarati': 'Gujarati',
+        'korean': 'Korean',
+        'japanese': 'Japanese',
+        'chinese': 'Chinese',
+        'mandarin': 'Chinese',
     }
     # Language Relevance Filter: Only show languages relevant to the region
     relevant_langs = []
@@ -703,12 +832,19 @@ def build_korea_context(data: dict) -> dict:
                 break
         raw_level = lang.get('level', '').lower()
         label = level_label_map.get(raw_level, lang.get('level', ''))
+        display_names = lang_display_en if is_en else lang_display_ko
+        display_name = display_names.get(name_lower, lang.get('name', ''))
+        if not is_en and name_lower == 'hindi' and raw_level in ('native', 'mother tongue'):
+            label = '원어민'
+        note = note_map.get(name_lower, '')
+        if is_en and name_lower == 'english' and 'business' in raw_level:
+            note = ''  # avoid "Business Fluent Business Advanced" duplicate
         relevant_langs.append({
-            'name':        lang['name'],
+            'name':        display_name,
             'level_dots':  dots,
             'level_label': label,
             'cert':        lang.get('cert', ''),
-            'note':        note_map.get(name_lower, ''),
+            'note':        note,
         })
     context['languages'] = relevant_langs
 
@@ -717,22 +853,40 @@ def build_korea_context(data: dict) -> dict:
     for cat in context.get('skillCategories', []):
         if not cat.get('visible', True):
             continue
-        # Map level string to dots (Experienced=5, Skilled=4, Proficient=3, etc.)
-        level_str = cat.get('level', 'Experienced').lower()
-        dots = 5
-        if 'expert' in level_str or 'senior' in level_str: dots = 5
-        elif 'experienced' in level_str or 'skilled' in level_str: dots = 4
-        elif 'proficient' in level_str or 'intermediate' in level_str: dots = 3
-        elif 'familiar' in level_str or 'basic' in level_str: dots = 2
-        else: dots = 4 # default
+        # Automatically calculate proficiency based on years of experience
+        calc_level = calculate_proficiency(cat.get("years", ""), context.get('lang', 'ko'))
+        
+        # Map word-based level back to dots for the visual template
+        level_dots = 4
+        if "expert" in calc_level.lower() or "전문가" in calc_level: level_dots = 5
+        elif "advanced" in calc_level.lower() or "고급" in calc_level: level_dots = 5
+        elif "experienced" in calc_level.lower() or "경험" in calc_level: level_dots = 4
+        elif "intermediate" in calc_level.lower() or "중급" in calc_level: level_dots = 3
+        else: level_dots = 2
 
         skills.append({
             'name':  cat.get('label', cat.get('name', '')),
             'items': cat.get('items', []),
-            'level': cat.get('level', 'Experienced'),
-            'level_dots': dots
+            'level': calc_level,
+            'level_dots': level_dots
         })
     context['skills'] = skills
+
+    # ── certifications — add year and month ──────────────────────────────────
+    korea_certs = []
+    for cert in context.get('certifications', []):
+        if not cert.get('visible', True):
+            continue
+        year_str = cert.get('year', '')
+        y, m, _ = parse_human_date(year_str)
+        korea_certs.append({
+            'year':   y,
+            'month':  m if m else 1,
+            'name':   cert.get('name', ''),
+            'issuer': cert.get('issuer', ''),
+        })
+    korea_certs.sort(key=lambda x: (x['year'], x['month']))
+    context['certifications'] = korea_certs
 
     # ── awards — filter achievements that have year + issuer ─────────────────
     awards = []
@@ -741,9 +895,12 @@ def build_korea_context(data: dict) -> dict:
         # Only items with a proper year (not empty) AND an issuer go into 수상
         if year_raw and year_raw.isdigit() and ach.get('issuer'):
             y, m, _ = parse_human_date(year_raw)
+            # KR5: If year_raw is a 4-digit year-only string, month is unknown → None
+            # The template uses {% if award.month %} so None suppresses the /01 display
+            month_val = None if len(year_raw) == 4 else (m if m else None)
             awards.append({
                 'year':   y,
-                'month':  m if m else 1,
+                'month':  month_val,
                 'name':   ach.get('title', ''),
                 'issuer': ach.get('issuer', ''),
             })
@@ -770,7 +927,7 @@ def build_korea_context(data: dict) -> dict:
             'period':    p.get('period', ''),
             'team_size': ('Individual' if is_en else '개인') if 'individual' in team_size.lower() else team_size,
             'tech':      tech,
-            'role':      ('Developer' if is_en else '개발자') if 'developer' in role.lower() else role,
+            'role':      (('Developer' if is_en else '개발자') if not role.strip() or 'developer' in role.lower() else role),
             'summary':   p.get('summary') or p.get('description', ''),
         })
     context['projects'] = projects_out
@@ -781,12 +938,19 @@ def build_korea_context(data: dict) -> dict:
     raw_research = context.get('research', [])
     if isinstance(raw_research, dict): raw_research = [raw_research] # safety
     
+    # Get labels for localization
+    L = get_labels(context.get('lang', 'en'))
+    
     for r in raw_research:
         if not isinstance(r, dict) or not r.get('visible', True):
             continue
+        # Localize research status
+        raw_status = r.get('status', 'Writing')
+        status_localized = L.get('writing_status', raw_status) if raw_status.lower() in ('writing', 'in progress', '執筆中', '작성 중', '进行中') else raw_status
+        
         research_out.append({
             'title':       r.get('title', ''),
-            'status':      r.get('status', 'Writing'),
+            'status':      status_localized,
             'year':        r.get('year', '2026'),
             'description': r.get('description', ''),
         })
@@ -796,20 +960,33 @@ def build_korea_context(data: dict) -> dict:
     cl = context.get('cover_letter', {})
     is_ko = context.get('lang') == 'ko'
     
-    context['cover_letter'] = {
-        **cl,
-        'growth_background':   cl.get('growth_background',   '저는 소프트웨어 기술이 세상을 긍정적으로 변화시키는 방식에 깊은 매력을 느껴왔으며, 실무적인 엔지니어링 역량을 탄탄히 다지며 성장해 왔습니다.' if is_ko else 'I have always been deeply fascinated by how software technology positively impacts the world, focusing my growth on building robust, real-world engineering skills.'),
-        'strengths_weaknesses': cl.get('strengths_weaknesses', '저의 큰 강점은 복잡한 문제를 끝까지 추적하여 해결하는 끈기와 대규모 백엔드 및 실시간 AI 모델을 안정적으로 아키텍처링하는 역량입니다.' if is_ko else 'My primary strength lies in my persistence to trace and solve complex problems, coupled with a strong capacity to architect stable backends and real-time AI models.'),
-        'motivation':          cl.get('motivation',           '귀사가 이끄는 혁신적이고 기술 지향적인 비즈니스 생태계 속에서 저의 고성능 API 설계 및 AI/ML 솔루션 구축 역량을 발휘하여 함께 도약하고자 지원하였습니다.' if is_ko else 'I am highly motivated to leverage my high-performance API design and AI/ML solution engineering capabilities within your pioneering technical business ecosystem.'),
-        'goals_after_joining': cl.get('goals_after_joining',  '입사 후에는 백엔드 최적화와 정밀한 모델 파이프라인 구축을 성공적으로 주도하여 비즈니스의 대규모 사용자를 견뎌내고 시스템 혁신을 가속화하겠습니다.' if is_ko else 'Upon joining, I aim to accelerate innovation and successfully manage large-scale traffic by spearheading backend optimizations and fine-tuning robust machine learning models.'),
-    }
+    def _formalize_korean_cl(text: str) -> str:
+        if not text:
+            return text
+        text = text.replace('영어를 계속 배우면서', '한국어를 계속 공부하면서')
+        text = text.replace('영어를 배우면서', '한국어를 공부하면서')
+        for informal, formal in (
+            ('나는', '저는'), ('내가', '제가'), ('나의', '제'), ('나를', '저를'),
+            ('나에게', '저에게'), ('내 ', '제 '),
+        ):
+            text = text.replace(informal, formal)
+        return text
+
+    context['cover_letter'] = cl
+    if is_ko:
+        cl_out = context['cover_letter']
+        for key in ('growth_background', 'strengths_weaknesses', 'motivation', 'goals_after_joining'):
+            if cl_out.get(key):
+                cl_out[key] = _formalize_korean_cl(cl_out[key])
 
     return context
 
 
-def _calc_china_duration(start_year: int, start_month: int, end_year: int, end_month: int, is_current: bool = False, lang: str = 'zh') -> str:
+def _calc_china_duration(start_year: int, start_month: int, end_year: int, end_month: int, is_current: bool = False, lang: str = 'zh', inclusive: bool = False) -> str:
     """Returns localized duration string (e.g., '1年3个月' or '1 yr 3 mo')."""
-    total_months = (end_year - start_year) * 12 + (end_month - start_month) + 1
+    total_months = (end_year - start_year) * 12 + (end_month - start_month)
+    if inclusive:
+        total_months += 1
     if total_months < 0:
         total_months = 0
     years = total_months // 12
@@ -839,6 +1016,10 @@ def build_china_context(data: dict) -> dict:
     today = datetime.today()
 
     profile = context.get('profile', {})
+    apply_phone_display(profile)
+    email = (profile.get('email') or '').strip()
+    if email.lower().startswith('mailto:'):
+        profile['email'] = email[7:].strip()
     
     # ── generated_date in localized format ─────────────────────────────────────
     is_zh = context.get('lang') == 'zh'
@@ -862,9 +1043,9 @@ def build_china_context(data: dict) -> dict:
             try:
                 dob = datetime.strptime(dob_raw, fmt)
                 if context.get('lang') == 'zh':
-                    dob_zh = dob.strftime('%Y年%m月%d日')
+                    dob_zh = f"{dob.year}年{dob.month}月{dob.day}日"
                 else:
-                    dob_zh = dob.strftime('%Y/%m/%d')
+                    dob_zh = f"{dob.year}/{dob.month:02d}/{dob.day:02d}"
                 break
             except ValueError:
                 continue
@@ -887,21 +1068,39 @@ def build_china_context(data: dict) -> dict:
     else:
         marital_display = raw_personal.get('marital_status', '')
 
+    # Check if candidate is overseas (address does not contain China/中国)
+    location_lower = (profile.get('location') or profile.get('address') or '').lower()
+    is_overseas = not ('china' in location_lower or '中国' in location_lower)
+
     context['personal'] = {
         'gender':        gender_display,
         'dob':           dob_zh,
         'nationality':   '印度' if context.get('lang') == 'zh' else 'India',
-        'visa_status':   raw_personal.get('visa_status', ''),
+        'visa_status':   (
+            (context.get('personal') or {}).get('visa_status', '').strip()
+            or resolve_region_visa_status(
+                profile.get('visa', {}),
+                'CN',
+                context.get('lang', 'zh'),
+            )
+        ),
         'marital_status': marital_display,
         'summary':       profile.get('summary', ''),
         'hobbies':       raw_personal.get('hobbies', ''),
+        'is_overseas':   is_overseas,
     }
 
-    # CN1: Keep summary in English — do not machine-translate to Chinese
-    # Only replace Japan-specific references with China equivalents if present
+    # Use pre-translated Chinese summary when available
+    if context.get('lang') == 'zh' and profile.get('summary_zh'):
+        profile['summary'] = profile['summary_zh']
     summary = profile.get('summary', '')
     if summary:
+        summary = summary.replace("专注于医疗AI及生物医学 signal 处理", "专注于医疗AI及生物医学信号处理")
+        summary = summary.replace("专注于医疗AI及生物医学signal处理", "专注于医疗AI及生物医学信号处理")
+        summary = summary.replace("全能力栈", "完整技术能力").replace("全栈能力", "完整技术能力")
         profile['summary'] = summary.replace("Japan's", "China's").replace("Japanese", "Chinese").replace("Japan", "China")
+    if context.get('lang') == 'zh':
+        context['personal']['summary'] = profile.get('summary', '')
 
     connections = context.get('connections', [])
     filtered = [
@@ -940,11 +1139,18 @@ def build_china_context(data: dict) -> dict:
         edu['start_month'] = sm
         edu['end_year']    = ey
         edu['end_month']   = em
-        edu['duration']    = _calc_china_duration(sy, sm, ey, em, is_current, context.get('lang'))
+        edu['duration']    = _calc_china_duration(sy, sm, ey, em, is_current, context.get('lang'), inclusive=True)
         edu['start']       = (sy, sm)
 
         if 'university' in edu and 'institution' not in edu:
             edu['institution'] = edu['university']
+
+        # Clean GPA double label (Issue 1)
+        gpa = edu.get('gpa', '')
+        if gpa:
+            cleaned = re.sub(r'(?i)\bCGPA\b', '', gpa).strip()
+            cleaned = re.sub(r'\s+', ' ', cleaned)
+            edu['gpa'] = cleaned
 
     # ── experience ────────────────────────────────────────────────────────────
     for exp in context.get('experience', []):
@@ -962,7 +1168,10 @@ def build_china_context(data: dict) -> dict:
         # Employment Type
         is_en = context.get('lang') == 'en'
         etype_raw = (exp.get('employment_type') or '').lower()
-        if 'freelance' in etype_raw:
+        company_raw = (exp.get('company') or '').lower()
+        role_raw = (exp.get('role') or '').lower()
+        if ('freelance' in etype_raw or 'freelance' in company_raw
+                or 'freelance' in role_raw or '自由职业' in company_raw):
             exp['employment_type_zh'] = 'Freelance' if is_en else '自由职业'
         elif 'contract' in etype_raw:
             exp['employment_type_zh'] = 'Contract' if is_en else '合同工'
@@ -975,31 +1184,44 @@ def build_china_context(data: dict) -> dict:
 
     # ── languages ────────────────────────────────────────────────────────────
     pct_to_dots = [(90, 5), (70, 4), (50, 3), (30, 2), (0, 1)]
-    level_label_zh = {
-        'native': '母语',
-        'business level': '商务水平',
-        'advanced': '精通',
-        'intermediate': '中级',
-        'basic': '基础',
-        'beginner': '初级'
+    is_zh = context.get('lang') == 'zh'
+    level_label_map = {
+        'native': '母语' if is_zh else 'Native',
+        'fluent / professional': '流利 / 专业' if is_zh else 'Fluent / Professional',
+        'business level': '商务水平' if is_zh else 'Business Level',
+        'advanced': '精通' if is_zh else 'Advanced',
+        'intermediate': '中级' if is_zh else 'Intermediate',
+        'basic': '基础' if is_zh else 'Basic',
+        'beginner': '初级' if is_zh else 'Beginner',
+        'beginner (currently learning)': '初级 (学习中)' if is_zh else 'Beginner (Currently Learning)'
     }
     
+    raw_langs = list(context.get('languages', []))
+    has_chinese = any(l.get('name', '').lower() in ('chinese', 'mandarin', '中文') for l in raw_langs)
+    if not has_chinese:
+        raw_langs.append({
+            "id": "lang_cn",
+            "name": "中文" if is_zh else "Mandarin Chinese",
+            "level": "beginner (currently learning)",
+            "percentage": 10,
+            "visible": True,
+            "order": 5
+        })
+
     china_langs = []
     region_lower = (context.get('region') or data.get('region', 'china')).lower()
-    for lang in context.get('languages', []):
+    for lang in raw_langs:
         if not lang.get('visible', True): continue
         name_lower = lang.get('name', '').lower()
         
         # Core languages always visible
-        if name_lower in ('english', 'hindi'):
+        if name_lower in ('english', 'hindi', 'mandarin chinese', 'chinese', 'mandarin', '中文'):
             is_relevant = True
         # Regional languages only show for their region
         elif name_lower in ('japanese', '日本語'):
             is_relevant = region_lower == 'japan'
         elif name_lower in ('korean', '한국어'):
             is_relevant = region_lower == 'korea'
-        elif name_lower in ('chinese', 'mandarin', '中文'):
-            is_relevant = region_lower == 'china'
         else:
             is_relevant = lang.get('visible', True)
             
@@ -1013,7 +1235,7 @@ def build_china_context(data: dict) -> dict:
                 dots = d
                 break
         raw_level = lang.get('level', '').lower()
-        label = level_label_zh.get(raw_level, lang.get('level', ''))
+        label = level_label_map.get(raw_level, lang.get('level', ''))
         china_langs.append({
             'name':        lang['name'],
             'level_dots':  dots,
@@ -1025,24 +1247,39 @@ def build_china_context(data: dict) -> dict:
 
     # ── skills ───────────────────────────────────────────────────────────────
     skills_out = []
-    pct_to_dots = [(90, 5), (70, 4), (50, 3), (30, 2), (0, 1)]
     for cat in context.get('skillCategories', []):
         if not cat.get('visible', True): continue
-        
-        # Calculate level dots
-        pct = cat.get('percentage', 80)
-        dots = 4
-        for threshold, d in pct_to_dots:
-            if pct >= threshold:
-                dots = d
-                break
-                
+        # Check if custom level is set on category
+        raw_level = cat.get('level', '')
+        if raw_level:
+            from services.translations import PROFICIENCY_LEVELS
+            lang_key = context.get('lang', 'zh')
+            if lang_key == 'cn': lang_key = 'zh'
+            if lang_key not in ["en", "ja", "ko", "zh"]: lang_key = "en"
+            
+            raw_lower = str(raw_level).lower()
+            if raw_lower in PROFICIENCY_LEVELS.get("en", {}):
+                calc_level = PROFICIENCY_LEVELS.get(lang_key, {}).get(raw_lower, raw_level)
+            else:
+                calc_level = raw_level
+        else:
+            # Automatically calculate proficiency based on years of experience
+            calc_level = calculate_proficiency(cat.get("years", ""), context.get('lang', 'zh'))
+
+        # Map word-based level back to dots for the visual template
+        level_dots = 4
+        if "expert" in calc_level.lower() or "专家" in calc_level: level_dots = 5
+        elif "advanced" in calc_level.lower() or "精通" in calc_level or "高级" in calc_level: level_dots = 5
+        elif "experienced" in calc_level.lower() or "经验" in calc_level or "熟练" in calc_level: level_dots = 4
+        elif "intermediate" in calc_level.lower() or "中级" in calc_level: level_dots = 3
+        else: level_dots = 2
+
         is_en = context.get('lang') == 'en'
         skills_out.append({
             'name':  cat.get('label', cat.get('name', '')),
             'items': cat.get('items', []),
-            'level': (L.get('proficient_label', 'Proficient') if dots >= 5 else (L.get('proficient_label', 'Experienced') if dots >= 3 else 'Learner')) if is_en else ('精通' if dots >= 5 else '熟练'),
-            'level_dots': dots
+            'level': calc_level,
+            'level_dots': level_dots
         })
     context['skills'] = skills_out
 
@@ -1083,7 +1320,7 @@ def build_china_context(data: dict) -> dict:
             'period':    p.get('period', ''),
             'team_size': p.get('team_size', L.get('individual', 'Individual') if is_en else '个人'),
             'tech':      tech,
-            'role':      p.get('role', L.get('developer', 'Developer') if is_en else '开发者'),
+            'role':      p.get('role') or (L.get('developer', 'Developer') if is_en else '开发者'),
             'summary':   proj_summary
         })
     context['projects'] = projects_out
@@ -1091,13 +1328,31 @@ def build_china_context(data: dict) -> dict:
     # ── research ─────────────────────────────────────────────────────────────
     research_out = []
     for r in context.get('research', []):
+        # Issue 10 / CN: Localize status "Writing" → "进行中" (or EN equivalent)
+        raw_status = r.get('status', 'Writing')
+        if raw_status.lower() in ('writing', 'in progress'):
+            status_loc = L.get('writing_status', raw_status)
+        else:
+            status_loc = raw_status
         research_out.append({
             'title': r.get('title', ''),
-            'status': r.get('status', L.get('writing_status', 'Writing') if is_en else '进行中'),
+            'status': status_loc,
             'year': r.get('year', '2026'),
             'description': r.get('description', '')
         })
     context['research'] = research_out
+
+    # ── cover_letter — defaults ───────────────────────────────────────────────
+    cl = context.get('cover_letter', {})
+    is_zh = context.get('lang') == 'zh'
+    
+    context['cover_letter'] = {
+        **cl,
+        'growth_background':   cl.get('growth_background',   '我一直对软件技术如何积极地改变世界深感着迷，并一直致力于通过建立稳健的实际工程技能来促进自己的成长。' if is_zh else 'I have always been deeply fascinated by how software technology positively impacts the world, focusing my growth on building robust, real-world engineering skills.'),
+        'strengths_weaknesses': cl.get('strengths_weaknesses', '我的主要优势在于能够追踪并解决复杂问题的毅力，以及构建稳定的后端和实时人工智能模型的能力。' if is_zh else 'My primary strength lies in my persistence to trace and solve complex problems, coupled with a strong capacity to architect stable backends and real-time AI models.'),
+        'motivation':          cl.get('motivation',           '我非常希望能在贵公司领先的技术业务生态系统中，充分利用我的高性能 API 设计和 AI/ML 解决方案工程能力，为贵公司的发展做出贡献。' if is_zh else 'I am highly motivated to leverage my high-performance API design and AI/ML solution engineering capabilities within your pioneering technical business ecosystem.'),
+        'goals_after_joining': cl.get('goals_after_joining',  '入职后，我旨在通过带头进行后端优化和微调稳健的机器学习模型，成功管理大规模流量并加速创新。' if is_zh else 'Upon joining, I aim to accelerate innovation and successfully manage large-scale traffic by spearheading backend optimizations and fine-tuning robust machine learning models.'),
+    }
 
     return context
 
@@ -1127,16 +1382,63 @@ def _generate_japan_pdfs_sync(rirekisho_html: str, shokumu_html: str, pdf_margin
         writer.write(out_buffer)
         return out_buffer.getvalue()
 
+async def translate_cover_letter_paragraphs(content: str, target_lang: str) -> str:
+    """Helper to translate cover letter paragraphs concurrently to avoid length limits/timeouts."""
+    if not content:
+        return content
+    from services.translations import translate_text
+    from services.cover_letter_service import _to_prose_paragraphs, _polish_cover_letter_body
+    prose = _to_prose_paragraphs(content)
+    paragraphs = [p.strip() for p in re.split(r'\n\s*\n', prose) if p.strip()]
+    if not paragraphs:
+        paragraphs = [p.strip() for p in content.split('\n\n') if p.strip()]
+    translated_parts = await asyncio.gather(*[
+        translate_text(p, target_lang, field_name="cover_letter_para") for p in paragraphs
+    ])
+    body = '\n\n'.join(translated_parts)
+    return _polish_cover_letter_body(body, f"_{target_lang.upper()}")
+
 async def generate_resume_playwright(data, live_projects=None, region="international", include_photo=False, return_html=False, lang="en", include_cover=False):
     """Generate Resume PDF using Jinja2 and Playwright."""
+    import copy
+    data = copy.deepcopy(data)
+    if live_projects is not None:
+        live_projects = copy.deepcopy(live_projects)
+
+    # Defensive placeholder filter
+    placeholder_patterns = ['test', 'testa', '测试', '테스트', 'temp', 'placeholder']
+    if 'certifications' in data:
+        data['certifications'] = [
+            c for c in data['certifications']
+            if not any(p in (c.get('name') or '').lower() or p in (c.get('issuer') or '').lower() for p in placeholder_patterns)
+        ]
+    if 'achievements' in data:
+        data['achievements'] = [
+            a for a in data['achievements']
+            if not any(p in (a.get('title') or '').lower() or p in (a.get('issuer') or '').lower() for p in placeholder_patterns)
+        ]
     
     # 1. Prepare View Data
     profile = data.get('profile', {}).copy()   # single copy, keep it
+
+    # Strip "Aspiring" from Japanese resume personal fields
+    personal_data = profile.get('personal', {})
+    for key in ('self_pr_ja', 'self_pr_ja_detailed', 'career_summary_ja'):
+        val = personal_data.get(key, '')
+        if isinstance(val, str) and 'aspiring' in val.lower():
+            personal_data[key] = re.sub(r'\bAspiring\s*', '', val, flags=re.IGNORECASE).strip()
+
+    # Remove underselling "Aspiring" title wording
+    for key in ('role', 'summary', 'bio'):
+        val = profile.get(key, '')
+        if isinstance(val, str) and 'aspiring' in val.lower():
+            profile[key] = re.sub(r'\bAspiring\s*', '', val, flags=re.IGNORECASE).strip()
+    if not profile.get('role'):
+        profile['role'] = 'AI/ML Engineer'
     
     # Strip years of experience mentions from summary (highly requested)
     summary_raw = profile.get('summary', '')
     if summary_raw:
-        import re
         patterns = [
             r'\b(?:with|having)?\s*(?:over|more than)?\s*\d+\+?\s*years?\s*of\s*(?:professional\s*)?experience\s*\b',
             r'\b(?:with|having)?\s*(?:over|more than)?\s*\d+\+?\s*years?\s*\b',
@@ -1183,6 +1485,8 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
                     continue
         except Exception:
             pass
+
+    apply_phone_display(profile)
             
     # 1.5 G1: Dynamic summary sentence — inject language_study + target_ecosystem per region
     # Determine region key for lookup
@@ -1204,18 +1508,12 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
 
     # G10: Visa statement injection
     visa_map = profile.get('visa', {})
-    # Build a more robust visa key lookup
-    visa_key_candidates = []
-    if lang == 'en' and region_key in ['JP', 'KR', 'CN']:
-        visa_key_candidates = [f"{region_key}_EN", region_key, region.lower(), 'GLOBAL']
-    else:
-        visa_key_candidates = [region_key, region.lower(), 'GLOBAL']
-
-    visa_statement = ''
-    for vk in visa_key_candidates:
-        if vk in visa_map and visa_map[vk]:
-            visa_statement = visa_map[vk]
-            break
+    visa_statement = resolve_region_visa_status(
+        visa_map,
+        region_key,
+        lang,
+        existing=personal.get('visa_status') or personal.get('visa_type') or profile.get('visa_info', {}).get('visaType', '') or '',
+    )
 
     summary = profile.get('summary', '')
 
@@ -1230,7 +1528,7 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
         profile['address'] = ""
 
     # Consolidate Visa Status for Global Integration
-    personal['visa_status'] = personal.get('visa_status') or personal.get('visa_type') or profile.get('visa_info', {}).get('visaType', '') or visa_statement
+    personal['visa_status'] = visa_statement
 
     # Calculate Japanese Era (Reiwa started May 1, 2019)
     # Simple calculation for current year
@@ -1239,23 +1537,61 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
     enriched_experience = enrich_experience(data.get('experience', []))
     # ── Parallel execution of AI-heavy tasks ────────────────────────────
     cl_task = None
+    manual_cover_content = ""
+    is_manual_cover = False
+    
     if include_cover:
-        from services.cover_letter_service import generate_dynamic_cover_letter
-        cl_task = asyncio.create_task(generate_dynamic_cover_letter(region, lang, data))
+        reg_cl = data.get('regional_cover_letters', {})
+        cl = data.get('cover_letter', {})
+        
+        # Resolve any manual cover letter text
+        specific_native = reg_cl.get(f"{region}_{lang}", "").strip()
+        regional_base = reg_cl.get(region, "").strip()
+        global_content = cl.get('content', "").strip()
+        
+        growth = cl.get('growth_background', "") or ""
+        strengths = cl.get('strengths_weaknesses', "") or ""
+        motivation = cl.get('motivation', "") or ""
+        goals = cl.get('goals_after_joining', "") or ""
+        merged_sections = "\n\n".join(filter(None, [growth, strengths, motivation, goals])).strip()
+        
+        # Decide if we have a manual cover letter
+        # We only treat it as a manual cover letter if the text is long (>= 500 chars),
+        # meaning the user has written/customized it, rather than it being a short default stub.
+        if specific_native and len(specific_native) >= 250:
+            manual_cover_content = specific_native
+            is_manual_cover = True
+        elif (regional_base or global_content or merged_sections) and len(regional_base or global_content or merged_sections) >= 250:
+            manual_cover_content = regional_base or global_content or merged_sections
+            is_manual_cover = True
+            # If target language is not English and we fall back to an English manual letter, JIT-translate it!
+            if lang != 'en':
+                cl_task = asyncio.create_task(translate_cover_letter_paragraphs(manual_cover_content, lang))
+        
+        # If no manual cover letter exists, only then generate dynamically using Groq LLM
+        if not is_manual_cover:
+            from services.cover_letter_service import generate_dynamic_cover_letter
+            cl_task = asyncio.create_task(generate_dynamic_cover_letter(region, lang, data))
     
     # Summary Translation Task
     summary_task = None
     pre_translated_summary = profile.get(f'summary_{lang}')
     if pre_translated_summary:
         profile['summary'] = pre_translated_summary
+        summary_task = 'pre_translated'
     elif lang != 'en' and summary:
         from services.translations import translate_text
-        summary_task = asyncio.create_task(translate_text(summary, lang, field_name="profile_summary"))
+        # JP-NEW6: For specialty regions (JP/KR/CN), do NOT require verified_only —
+        # fall back to Google Translate so the summary always appears in the target language
+        is_specialty = region in ('japan', 'korea', 'china')
+        summary_task = asyncio.create_task(
+            translate_text(summary, lang, field_name="profile_summary", verified_only=not is_specialty)
+        )
 
     # Gather all results
     tasks = [enrich_projects(live_projects)]
     if cl_task: tasks.append(cl_task)
-    if summary_task: tasks.append(summary_task)
+    if summary_task and summary_task != 'pre_translated': tasks.append(summary_task)
 
     # Gather all results with exception handling
     try:
@@ -1274,11 +1610,57 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
         res_val = results[res_ptr]
         ai_letter = res_val if not isinstance(res_val, Exception) else None
         res_ptr += 1
-    if summary_task:
+    if summary_task and summary_task != 'pre_translated':
         res_val = results[res_ptr]
         if not isinstance(res_val, Exception) and res_val:
             profile['summary'] = res_val
         res_ptr += 1
+
+    # Clean experience years from final summary (G6, CN1, KR1)
+    # Clean experience years from final summary and PR fields (G6, CN1, KR1, JP-NEW7)
+    def clean_years(text):
+        if not text or not isinstance(text, str):
+            return text
+        s_patterns = [
+            # English
+            r'(?<!\d)\d{1,2}\+?\s*years?\s*of\s*(?:professional\s*)?experience',
+            r'(?<!\d)\d{1,2}\+?\s*years?',
+            # Korean
+            r'(?<!\d)\d{1,2}년\s*(?:이상|반|간)?\s*(?:의)?\s*(?:실무\s*)?경험을\s*(?:보유한|가진|지닌|보유)?',
+            r'(?<!\d)\d{1,2}년\s*(?:이상|반|간)?\s*(?:의)?\s*(?:실무\s*)?경험',
+            r'(?<!\d)\d{1,2}년\s*(?:이상|반|간)?\s*(?:의)?\s*(?:경력|경험)',
+            r'(?<!\d)\d{1,2}\+?\s*개년',
+            r'(?<!\d)\d{1,2}\+?\s*년',
+            # Chinese
+            r'拥有\s*(?<!\d)\d{1,2}\s*年\s*(?:的)?\s*(?:机器学习系统)?开发经验',
+            r'拥有\s*(?<!\d)\d{1,2}\s*年\s*(?:的)?\s*(?:工作)?经验',
+            r'拥有\s*(?<!\d)\d{1,2}\s*年\s*(?:的)?\s*经验',
+            r'(?<!\d)\d{1,2}\+?\s*年',
+            # Japanese
+            r'(?<![令和平成昭和\d])\d{1,2}\+?\s*年\s*(?:以上)?\s*(?:の)?\s*(?:実務)?経験',
+            r'(?<![令和平成昭和\d])\d{1,2}\+?\s*年\s*(?:以上)?\s*(?:の)?\s*実務経験',
+            r'(?<![令和平成昭和\d])\d{1,2}\+?\s*年\s*(?:以上)?\s*(?:の)?\s*経験',
+            r'(?<![令和平成昭和\d])\d{1,2}\+?\s*年',
+        ]
+        s_text = text
+        for pattern in s_patterns:
+            s_text = re.sub(pattern, ' ', s_text, flags=re.IGNORECASE)
+        s_text = re.sub(r'\s{2,}', ' ', s_text)
+        s_text = s_text.replace("，，", "，").replace(",,", ",").replace(", ,", ",")
+        s_text = re.sub(r'，\s*，', '，', s_text)
+        s_text = re.sub(r',\s*,', ',', s_text)
+        return s_text.strip()
+
+    if profile.get('summary'):
+        profile['summary'] = clean_years(profile['summary'])
+    if personal.get('career_summary_ja'):
+        personal['career_summary_ja'] = clean_years(personal['career_summary_ja'])
+    if personal.get('self_pr_ja'):
+        personal['self_pr_ja'] = clean_years(personal['self_pr_ja'])
+    if personal.get('self_pr_ja_detailed'):
+        personal['self_pr_ja_detailed'] = clean_years(personal['self_pr_ja_detailed'])
+    if personal.get('summary'):
+        personal['summary'] = clean_years(personal['summary'])
 
     view_data = {
         'profile': profile,
@@ -1310,7 +1692,6 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
     # Handle Cover Letter Result
     if include_cover:
         if ai_letter:
-            import re
             html_letter = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', ai_letter)
             html_letter = re.sub(r'\*(.*?)\*', r'<em>\1</em>', html_letter)
             view_data['cover_letter'] = {
@@ -1323,7 +1704,6 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
             cl = data.get('cover_letter', {})
             static_content = (reg_cl.get(f"{region}_{lang}") or reg_cl.get(region) or cl.get('content') or 
                              "\n\n".join(filter(None, [cl.get('growth_background'), cl.get('strengths_weaknesses'), cl.get('motivation'), cl.get('goals_after_joining')])))
-            import re
             html_static = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', static_content)
             html_static = re.sub(r'\*(.*?)\*', r'<em>\1</em>', html_static)
             view_data['cover_letter'] = {**cl, 'content': html_static}
@@ -1434,9 +1814,15 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
         
         # Employment Nature
         for exp in vd['experience']:
-            etype = (exp.get('employment_type') or exp.get('employment_type_ja') or '').lower()
+            etype = (exp.get('employment_type') or exp.get('employment_type_ja') or '').strip().lower()
             company = exp.get('company', '').lower()
-            if 'free' in etype or 'free' in company:
+            role = exp.get('role', '').lower()
+            is_freelance = (
+                'freelance' in company or 'freelancer' in company or 'フリーランス' in company or
+                'freelance' in role or 'freelancer' in role or 'フリーランス' in role or
+                'freelance' in etype or 'freelancer' in etype or 'フリーランス' in etype
+            )
+            if is_freelance:
                 exp['employment_type_ja'] = vd['L'].get('freelance', 'フリーランス')
                 exp['employment_type_ko'] = vd['L'].get('freelance', 'フリーランス')
             else:
@@ -1495,6 +1881,8 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
                 elif '母语' in l.get('level', '') or 'Native' in l.get('level', ''):
                     l['level'] = 'Native Speaker'
 
+
+
     def process_international(vd):
         # Merge research and researchInterests for ATS
         res = vd.get('research', [])
@@ -1523,9 +1911,18 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
             vd['L']['notice_period_label'] = 'Notice Period'
             vd['L']['cgpa_label'] = 'CGPA'
         
-        # UAE/Germany personal blocks
-        if region in {'germany', 'middleeast'}:
+        # UAE/Germany personal blocks - show extended personal details only for UAE/Middle East
+        if region in {'middleeast', 'uae'}:
             vd['show_extended_personal'] = True
+        else:
+            vd['show_extended_personal'] = False
+
+        # Filter skillCategories by visible flag
+        if 'skillCategories' in vd:
+            vd['skillCategories'] = [
+                cat for cat in vd['skillCategories']
+                if cat.get('visible', True)
+            ]
             
         # Neutralize Japan-specific references in summary for non-Asian resumes
         prof = vd.get('profile', {})
@@ -1608,6 +2005,15 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
         # 3. JIT Translation for all sections (Batched to avoid rate limits)
     if lang != 'en':
         queue = [] # List of {"text": str, "field_name": str, "callback": function}
+
+        def _enqueue_translation(text, field_name, callback):
+            """Skip empty strings — translating '' corrupts fields (e.g. project role)."""
+            if text is None:
+                return
+            s = str(text).strip()
+            if not s:
+                return
+            queue.append({"text": text, "field_name": field_name, "cb": callback})
         
         # Summary
         if view_data.get('about'):
@@ -1621,11 +2027,6 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
                 def set_field(obj, key): return lambda t: obj.__setitem__(key, t)
                 queue.append({"text": exp.get('role', ''), "field_name": "exp_role", "cb": set_field(exp, 'role')})
                 queue.append({"text": exp.get('company', ''), "field_name": "exp_company", "cb": set_field(exp, 'company')})
-                if exp.get('bullets'):
-                    for i, b in enumerate(exp['bullets']):
-                        queue.append({"text": b, "field_name": "exp_bullet", "cb": make_cb(i) if False else (lambda t, e=exp, idx=i: e['bullets'].__setitem__(idx, t))})
-                if exp.get('description'):
-                    queue.append({"text": exp['description'], "field_name": "exp_desc", "cb": set_field(exp, 'description')})
                 if exp.get('resign_reason_ja'):
                     queue.append({"text": exp['resign_reason_ja'], "field_name": "exp_resign", "cb": set_field(exp, 'resign_reason_ja')})
 
@@ -1634,18 +2035,14 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
             for proj in view_data['live_projects']:
                 def set_p(p, k): return lambda t: p.__setitem__(k, t)
                 queue.append({"text": proj.get('name', ''), "field_name": "proj_name", "cb": set_p(proj, 'name')})
-                queue.append({"text": proj.get('summary', ''), "field_name": "proj_summary", "cb": set_p(proj, 'summary')})
-                queue.append({"text": proj.get('description', ''), "field_name": "proj_desc", "cb": set_p(proj, 'description')})
                 queue.append({"text": proj.get('role', ''), "field_name": "proj_role", "cb": set_p(proj, 'role')})
-                queue.append({"text": proj.get('tech', ''), "field_name": "proj_tech", "cb": set_p(proj, 'tech')})
-                queue.append({"text": proj.get('techStack', ''), "field_name": "proj_tech_stack", "cb": set_p(proj, 'techStack')})
 
         # Education
         if view_data.get('education'):
             for edu in view_data['education']:
                 def set_e(e, k): return lambda t: e.__setitem__(k, t)
                 queue.append({"text": edu.get('university', ''), "field_name": "edu_university", "cb": set_e(edu, 'university')})
-                queue.append({"text": edu.get('degree', ''), "field_name": "edu_degree", "cb": set_e(edu, 'degree')})
+                # Degree left untranslated as requested by the user
                 queue.append({"text": edu.get('major', ''), "field_name": "edu_major", "cb": set_e(edu, 'major')})
                 if edu.get('notes'):
                     queue.append({"text": edu['notes'], "field_name": "edu_notes", "cb": set_e(edu, 'notes')})
@@ -1658,13 +2055,13 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
                 def set_a(a, k): return lambda t: a.__setitem__(k, t)
                 queue.append({"text": ach.get('title', ''), "field_name": "ach_title", "cb": set_a(ach, 'title')})
                 queue.append({"text": ach.get('description', ''), "field_name": "ach_desc", "cb": set_a(ach, 'description')})
+                queue.append({"text": ach.get('issuer', ''), "field_name": "ach_issuer", "cb": set_a(ach, 'issuer')})
 
         # Research
         if view_data.get('research'):
             for res in view_data['research']:
                 def set_r(r, k): return lambda t: r.__setitem__(k, t)
                 queue.append({"text": res.get('title', ''), "field_name": "res_title", "cb": set_r(res, 'title')})
-                queue.append({"text": res.get('description', ''), "field_name": "res_desc", "cb": set_r(res, 'description')})
                 queue.append({"text": res.get('status', ''), "field_name": "res_status", "cb": set_r(res, 'status')})
 
         # Skill Categories
@@ -1673,32 +2070,29 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
                 def set_c(c, k): return lambda t: c.__setitem__(k, t)
                 queue.append({"text": cat.get('label', ''), "field_name": "skill_cat", "cb": set_c(cat, 'label')})
 
-        # Cover Letter - SKIP translation batch to prevent leaks and order misalignment
-        # The cover letter is already generated in target language or is English.
+        # Cover Letter - Enqueue individual sections for translation
+        cl = view_data.get('cover_letter', {})
+        if cl:
+            for field_key in ['growth_background', 'strengths_weaknesses', 'motivation', 'goals_after_joining']:
+                if cl.get(field_key):
+                    def make_cl_cb(fk): return lambda t: cl.__setitem__(fk, t)
+                    queue.append({"text": cl[field_key], "field_name": f"cl_{field_key}", "cb": make_cl_cb(field_key)})
 
         # Projects (Manual ones)
         if view_data.get('projects'):
             for proj in view_data['projects']:
                 def set_p_m(p, k): return lambda t: p.__setitem__(k, t)
                 queue.append({"text": proj.get('name', ''), "field_name": "proj_name", "cb": set_p_m(proj, 'name')})
-                queue.append({"text": proj.get('summary', ''), "field_name": "proj_summary", "cb": set_p_m(proj, 'summary')})
-                queue.append({"text": proj.get('description', ''), "field_name": "proj_desc", "cb": set_p_m(proj, 'description')})
                 queue.append({"text": proj.get('role', ''), "field_name": "proj_role", "cb": set_p_m(proj, 'role')})
-                queue.append({"text": proj.get('tech', ''), "field_name": "proj_tech", "cb": set_p_m(proj, 'tech')})
-                queue.append({"text": proj.get('techStack', ''), "field_name": "proj_tech_stack", "cb": set_p_m(proj, 'techStack')})
 
         # Certifications
         if view_data.get('certifications'):
             for cert in view_data['certifications']:
                 def set_cert(c, k): return lambda t: c.__setitem__(k, t)
                 queue.append({"text": cert.get('name', ''), "field_name": "cert_name", "cb": set_cert(cert, 'name')})
+                queue.append({"text": cert.get('issuer', ''), "field_name": "cert_issuer", "cb": set_cert(cert, 'issuer')})
 
-        # Languages
-        if view_data.get('languages'):
-            for l in view_data['languages']:
-                def set_l(obj, k): return lambda t: obj.__setitem__(k, t)
-                queue.append({"text": l.get('name', ''), "field_name": "lang_name", "cb": set_l(l, 'name')})
-                queue.append({"text": l.get('level', ''), "field_name": "lang_level", "cb": set_l(l, 'level')})
+        # Language names/levels are set in build_*_context — do not JIT-translate (corrupts Hindi etc.)
 
         # Profile / Personal
         if view_data.get('profile'):
@@ -1709,23 +2103,24 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
             if prof.get('summary') and not summary_task:
                 queue.append({"text": prof['summary'], "field_name": "profile_summary", "cb": set_prof(prof, 'summary')})
             
-            pers = prof.get('personal', {})
+            pers = view_data.get('personal') or prof.get('personal', {})
             if pers:
                 def set_pers(p, k): return lambda t: p.__setitem__(k, t)
-                if pers.get('self_pr_ja') and lang != 'ja':
+                if pers.get('self_pr_ja') and lang == 'ja':
                     queue.append({"text": pers['self_pr_ja'], "field_name": "self_pr", "cb": set_pers(pers, 'self_pr_ja')})
-                if pers.get('self_pr_ja_detailed') and lang != 'ja':
+                if pers.get('self_pr_ja_detailed') and lang == 'ja':
                     queue.append({"text": pers['self_pr_ja_detailed'], "field_name": "self_pr_detailed", "cb": set_pers(pers, 'self_pr_ja_detailed')})
-                if pers.get('career_summary_ja') and lang != 'ja':
+                if pers.get('career_summary_ja') and lang == 'ja':
                     queue.append({"text": pers['career_summary_ja'], "field_name": "career_summary", "cb": set_pers(pers, 'career_summary_ja')})
-                if pers.get('desired_conditions_ja') and lang != 'ja':
+                if pers.get('desired_conditions_ja') and lang == 'ja':
                     queue.append({"text": pers['desired_conditions_ja'], "field_name": "desired_cond", "cb": set_pers(pers, 'desired_conditions_ja')})
                 if pers.get('nationality'):
                     queue.append({"text": pers['nationality'], "field_name": "nationality", "cb": set_pers(pers, 'nationality')})
                 if pers.get('summary'):
                     queue.append({"text": pers['summary'], "field_name": "pers_summary", "cb": set_pers(pers, 'summary')})
-                if pers.get('visa_status'):
-                    queue.append({"text": pers['visa_status'], "field_name": "visa_status", "cb": set_pers(pers, 'visa_status')})
+                visa_val = pers.get('visa_status', '')
+                if visa_val and lang != 'en' and not is_sufficiently_translated(visa_val, lang):
+                    queue.append({"text": visa_val, "field_name": "visa_status", "cb": set_pers(pers, 'visa_status')})
                 if pers.get('political_status'):
                     queue.append({"text": pers['political_status'], "field_name": "political_status", "cb": set_pers(pers, 'political_status')})
                 if pers.get('commute_time'):
@@ -1736,8 +2131,10 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
 
         # Execute Batch Translation
         if queue:
+            queue = [q for q in queue if q.get("text") and str(q["text"]).strip()]
+        if queue:
             batch_items = [{"text": q["text"], "field_name": q["field_name"]} for q in queue]
-            translated_results = await translate_batch(batch_items, lang)
+            translated_results = await translate_batch(batch_items, lang, verified_only=True)
             
             # Apply results back
             for i, translated_text in enumerate(translated_results):
@@ -1756,6 +2153,7 @@ async def generate_resume_playwright(data, live_projects=None, region="internati
 
     # 4. Process Region-Specific Logic
     if region == 'japan':
+        print(f"[JAPAN RESUME] Region: {region}, Language: {lang}")
         process_japan(view_data)
     elif region == 'korea':
         process_korea(view_data)

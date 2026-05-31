@@ -23,10 +23,12 @@
     color: #666;
 }
 .header-photo-wrapper {
-    width: 105px;
-    height: 140px;
-    border: 1px solid #ccc;
-    background: #f9f9f9;
+    width: 32mm;
+    height: 42mm;
+    margin-left: 20px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    flex-shrink: 0;
 }
 .header-photo {
     width: 100%;

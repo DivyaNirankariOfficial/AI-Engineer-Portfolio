@@ -22,6 +22,7 @@ async def get_ats_score_route(region: str):
     result = calculate_ats_score(data, region)
     return result
 
+# Country Detection
 @router.get("/detect")
 async def detect_region(request: Request):
     """Detects region info for the current visitor."""
@@ -119,15 +120,57 @@ async def download_auto(request: Request, background_tasks: BackgroundTasks, lan
 @router.get("/download/{region}")
 async def download_manual(region: str, request: Request, background_tasks: BackgroundTasks, lang: str = "en", cover: bool = None):
     """Manual override for regional resume download."""
-    # Find the region info from REGION_MAP in geo.py
     from services.geo import REGION_MAP, DEFAULT_REGION
+    from services.geo_rules import GEO_RULES
     
-    # Matching by 'region' key or specific country code if provided as parameter
     target = None
-    for code, info in REGION_MAP.items():
-        if info['region'] == region or code.lower() == region.lower():
-            target = info
-            break
+    region_lower = region.lower()
+    
+    # 1. Match directly with GEO_RULES keys first
+    if region_lower in GEO_RULES:
+        rule = GEO_RULES[region_lower]
+        for code, info in REGION_MAP.items():
+            if info['region'] == region_lower:
+                target = info.copy()
+                break
+        if not target:
+            label_map = {
+                "usa": "USA (ATS)",
+                "uk": "UK (ATS)",
+                "uae": "UAE",
+                "india": "India (ATS)",
+                "germany": "Germany (Lebenslauf)",
+                "china": "China (简历)",
+                "korea": "South Korea (이력서)",
+                "japan": "Japan (履歴書)",
+                "middleeast": "Middle East",
+                "international": "International (ATS)"
+            }
+            filename_map = {
+                "usa": "divya_nirankari_resume_usa.pdf",
+                "uk": "divya_nirankari_resume_uk.pdf",
+                "uae": "divya_nirankari_resume_uae.pdf",
+                "india": "divya_nirankari_resume_india.pdf",
+                "germany": "divya_nirankari_lebenslauf.pdf",
+                "china": "divya_nirankari_简历.pdf",
+                "korea": "divya_nirankari_이력서.pdf",
+                "japan": "divya_nirankari_履歴書.pdf",
+                "middleeast": "divya_nirankari_resume_me.pdf",
+                "international": "divya_nirankari_resume.pdf"
+            }
+            target = {
+                "region": region_lower,
+                "photo": rule.get("show_photo", False),
+                "label": label_map.get(region_lower, region_lower.upper()),
+                "filename": filename_map.get(region_lower, f"divya_nirankari_resume_{region_lower}.pdf")
+            }
+            
+    # 2. Match by region key in REGION_MAP or country code
+    if not target:
+        for code, info in REGION_MAP.items():
+            if info['region'] == region or code.lower() == region.lower():
+                target = info
+                break
             
     if not target:
         target = DEFAULT_REGION
@@ -148,12 +191,56 @@ async def preview_auto(request: Request, background_tasks: BackgroundTasks, lang
 async def preview_manual(region: str, request: Request, background_tasks: BackgroundTasks, lang: str = "en", cover: bool = False):
     """Manual override for regional HTML resume preview."""
     from services.geo import REGION_MAP, DEFAULT_REGION
+    from services.geo_rules import GEO_RULES
     
     target = None
-    for code, info in REGION_MAP.items():
-        if info['region'] == region or code.lower() == region.lower():
-            target = info
-            break
+    region_lower = region.lower()
+    
+    # 1. Match directly with GEO_RULES keys first
+    if region_lower in GEO_RULES:
+        rule = GEO_RULES[region_lower]
+        for code, info in REGION_MAP.items():
+            if info['region'] == region_lower:
+                target = info.copy()
+                break
+        if not target:
+            label_map = {
+                "usa": "USA (ATS)",
+                "uk": "UK (ATS)",
+                "uae": "UAE",
+                "india": "India (ATS)",
+                "germany": "Germany (Lebenslauf)",
+                "china": "China (简历)",
+                "korea": "South Korea (이력서)",
+                "japan": "Japan (履歴書)",
+                "middleeast": "Middle East",
+                "international": "International (ATS)"
+            }
+            filename_map = {
+                "usa": "divya_nirankari_resume_usa.pdf",
+                "uk": "divya_nirankari_resume_uk.pdf",
+                "uae": "divya_nirankari_resume_uae.pdf",
+                "india": "divya_nirankari_resume_india.pdf",
+                "germany": "divya_nirankari_lebenslauf.pdf",
+                "china": "divya_nirankari_简历.pdf",
+                "korea": "divya_nirankari_이력서.pdf",
+                "japan": "divya_nirankari_履歴書.pdf",
+                "middleeast": "divya_nirankari_resume_me.pdf",
+                "international": "divya_nirankari_resume.pdf"
+            }
+            target = {
+                "region": region_lower,
+                "photo": rule.get("show_photo", False),
+                "label": label_map.get(region_lower, region_lower.upper()),
+                "filename": filename_map.get(region_lower, f"divya_nirankari_resume_{region_lower}.pdf")
+            }
+            
+    # 2. Match by region key in REGION_MAP or country code
+    if not target:
+        for code, info in REGION_MAP.items():
+            if info['region'] == region or code.lower() == region.lower():
+                target = info
+                break
             
     if not target:
         target = DEFAULT_REGION

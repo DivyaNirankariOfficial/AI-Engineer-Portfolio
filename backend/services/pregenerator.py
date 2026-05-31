@@ -200,10 +200,11 @@ async def regenerate_all(triggered_by: str = "manual") -> dict:
             merged_projects = await _build_merged_projects(data)
             results         = {}
 
+            import copy
             for region, lang, include_cover, filename in RESUME_VARIANTS:
                 output_path = OUTPUT_DIR / filename
                 t_start     = time.monotonic()
-                success     = await _generate_one(data, merged_projects, region, lang, include_cover, output_path)
+                success     = await _generate_one(copy.deepcopy(data), merged_projects, region, lang, include_cover, output_path)
                 elapsed     = round(time.monotonic() - t_start, 1)
                 results[filename] = {
                     "ok":      success,

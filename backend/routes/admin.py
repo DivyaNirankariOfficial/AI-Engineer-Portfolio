@@ -126,51 +126,7 @@ async def rewrite_summary_route(req: SummarizeRequest):
     except GroqError as ge:
         return JSONResponse(status_code=400, content={"error": ge.message, "solution": ge.solution})
 
-class CoverLetterGenerateRequest(BaseModel):
-    about: List[str]
-    experience: List[dict]
-    region: str = "international"
-    lang: str = "en"
 
-@router.post("/generate-cover-letter/")
-async def generate_cover_letter_route(req: CoverLetterGenerateRequest):
-    from services.groq_service import call_groq_json
-    
-    about_text = "\n".join(req.about)
-    exp_summary = "\n".join([f"- {e.get('role')} at {e.get('company')}: {e.get('description', '')}" for e in req.experience[:3]])
-    
-    system_prompt = "You are an expert Global Career Consultant. Return ONLY a JSON object."
-    
-    user_prompt = f"""
-    Create a professional cover letter based on this candidate's data.
-    Target Region: {req.region}
-    Target Language: {req.lang} (Return the content in this language!)
-    
-    Candidate Background:
-    {about_text}
-    
-    Recent Experience:
-    {exp_summary}
-    
-    If the region is 'korea', return these EXACT 4 keys:
-    "growth_background", "strengths_weaknesses", "motivation", "goals_after_joining"
-    
-    If the region is 'japan', return these EXACT keys:
-    "content" (Full body of the 'Soe-jo' (添え状) following this 3-part Daijob.com structure),
-    "self_pr_ja" (A separate Self-PR section for the Rirekisho)
-    
-    For all other regions, return:
-    "content" (Full body in professional standard style)
-    
-    Tone: Sophisticated, impactful, and tailored to the {req.region} professional culture.
-    Return ONLY JSON.
-    """
-    
-    try:
-        res = await call_groq_json(system_prompt, user_prompt)
-        return res
-    except GroqError as ge:
-        return JSONResponse(status_code=400, content={"error": ge.message, "solution": ge.solution})
 
 class GenerateBulletsRequest(BaseModel):
     role: str
@@ -294,7 +250,7 @@ class SynthesisRequest(BaseModel):
 
 @router.post("/translations/synthesize/")
 async def synthesize_translation(req: SynthesisRequest):
-    from services.translations import synthesize_text
+    from services.translations import synthesize_resume_text as synthesize_text
     try:
         synthesized = await synthesize_text(req.original_text, req.locale, req.field_name)
         return {"synthesized_text": synthesized}
