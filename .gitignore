@@ -75,3 +75,13 @@ backend/generated_pdfs/*.pdf
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary and Verification files
+Resume_Verification_Report_Divya.docx
+notebooklm_source.txt
+check_schema.py
+extract_docx.py
+final_tune.py
+hard_prune.py
+update_db_content.py
+verification_report.md
