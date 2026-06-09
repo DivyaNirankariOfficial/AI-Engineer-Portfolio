@@ -34,7 +34,16 @@ export const PortfolioProvider = ({ children }) => {
           email: "dvnirankari@gmail.com"
         },
         about: ["Fallback about section"],
-        stats: { projects_count: "10+", years_experience: "3", ml_models: "5", fun_stat: "Lots of code" },
+        stats: {
+          card_1_value: "12+",
+          card_1_label: "Systems Built",
+          card_2_value: "94%",
+          card_2_label: "ECG F1-Score",
+          card_3_value: "Healthcare AI",
+          card_3_label: "Biomedical Signal Processing",
+          card_4_value: "AI + Backend",
+          card_4_label: "Research to Production"
+        },
         skills: ["React", "Python", "FastAPI"],
         sections_visibility: { about: true, skills: true, projects: true, contact: true },
         project_visibility: {}

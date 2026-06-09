@@ -933,6 +933,20 @@ const Admin = () => {
                                     />
                                 </div>
 
+                                {/* Currently Exploring */}
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-end border-b border-warmBrown/5 pb-4">
+                                        <h3 className="font-serif text-2xl italic">Currently Exploring</h3>
+                                        <span className="font-mono text-[9px] text-warmBrown/30 uppercase tracking-[0.2em]">{formData.currentlyExploring?.length || 0} nodes</span>
+                                    </div>
+                                    <CollectionEditor
+                                        type="exploring"
+                                        items={formData.currentlyExploring || []}
+                                        setItems={(newItems) => setFormData(prev => ({ ...prev, currentlyExploring: newItems }))}
+                                        onEdit={(item) => setEditingItem({ type: 'exploring', item })}
+                                    />
+                                </div>
+
                                 {/* Languages */}
                                 <div className="space-y-6">
                                     <div className="flex justify-between items-end border-b border-warmBrown/5 pb-4">
@@ -1210,20 +1224,37 @@ const Admin = () => {
                             <div className="bg-white p-8 border border-warmBrown/5 shadow-sm space-y-8">
                                 <h3 className="font-serif text-xl border-b border-warmBrown/5 pb-4 italic">Visibility Map</h3>
                                 <div className="flex flex-wrap gap-4">
-                                    {Object.keys(formData.sections_visibility).map(sec => (
-                                        <div key={sec} className="flex-auto min-w-[140px] flex items-center justify-between gap-4 bg-ivory/20 p-4 border border-warmBrown/5 hover:border-accent/10 transition-colors">
-                                            <span className="font-mono text-sm lowercase text-warmBrown/70">{sec}</span>
-                                            <button
-                                                onClick={() => {
-                                                    const newVal = !formData.sections_visibility[sec];
-                                                    handleChange('sections_visibility', sec, newVal);
-                                                }}
-                                                className={`text-sm font-mono transition-all hover:scale-105 ${formData.sections_visibility[sec] ? 'text-accent' : 'text-warmBrown/30'}`}
-                                            >
-                                                {formData.sections_visibility[sec] ? '[Enabled]' : '[Disabled]'}
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {Object.keys(formData.sections_visibility).map(sec => {
+                                        const labelMap = {
+                                            about: 'About',
+                                            skills: 'Skills',
+                                            projects: 'Projects',
+                                            contact: 'Contact',
+                                            experience: 'Experience',
+                                            achievements: 'Achievements',
+                                            activity: 'Activity',
+                                            timeline: 'Timeline',
+                                            research: 'Research Interests',
+                                            exploring: 'Currently Exploring',
+                                            testimonials: 'Testimonials',
+                                            blog: 'Thought Canvas'
+                                        };
+                                        const labelName = labelMap[sec] || sec;
+                                        return (
+                                            <div key={sec} className="flex-auto min-w-[140px] flex items-center justify-between gap-4 bg-ivory/20 p-4 border border-warmBrown/5 hover:border-accent/10 transition-colors">
+                                                <span className="font-mono text-sm lowercase text-warmBrown/70">{labelName}</span>
+                                                <button
+                                                    onClick={() => {
+                                                        const newVal = !formData.sections_visibility[sec];
+                                                        handleChange('sections_visibility', sec, newVal);
+                                                    }}
+                                                    className={`text-sm font-mono transition-all hover:scale-105 ${formData.sections_visibility[sec] ? 'text-accent' : 'text-warmBrown/30'}`}
+                                                >
+                                                    {formData.sections_visibility[sec] ? '[Enabled]' : '[Disabled]'}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -1493,7 +1524,14 @@ const Admin = () => {
                                 {editingItem.type === 'research' && (
                                     <>
                                         <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Topic" value={editingItem.item.topic || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, topic: e.target.value } })} />
-                                        <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-mono text-xs" placeholder="Date" value={editingItem.item.date || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, date: e.target.value } })} />
+                                        <textarea className="w-full border border-warmBrown/10 p-4 focus:outline-none focus:border-accent font-sans text-sm h-32" placeholder="Description" value={editingItem.item.description || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, description: e.target.value } })} />
+                                    </>
+                                )}
+
+                                {editingItem.type === 'exploring' && (
+                                    <>
+                                        <input className="w-full border-b border-warmBrown/10 py-2 focus:outline-none focus:border-accent font-serif" placeholder="Theme / Title" value={editingItem.item.theme || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, theme: e.target.value } })} />
+                                        <textarea className="w-full border border-warmBrown/10 p-4 focus:outline-none focus:border-accent font-sans text-sm h-32" placeholder="Description" value={editingItem.item.description || ''} onChange={e => setEditingItem({ ...editingItem, item: { ...editingItem.item, description: e.target.value } })} />
                                     </>
                                 )}
 
@@ -1667,6 +1705,7 @@ const Admin = () => {
                                             achievements: 'achievements',
                                             testimonials: 'testimonials',
                                             research: 'researchInterests',
+                                            exploring: 'currentlyExploring',
                                             languages: 'languages',
                                             blog: 'blogPosts',
                                             projects: 'projects',

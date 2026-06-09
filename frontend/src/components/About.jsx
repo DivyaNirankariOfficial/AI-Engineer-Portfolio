@@ -11,10 +11,10 @@ const About = () => {
   const { about, stats } = data;
 
   const statEntries = [
-    { label: "Systems Built", value: stats.projects_count },
-    { label: "Engineering", value: `${stats.years_experience} Yrs` },
-    { label: "ML Layers", value: stats.ml_models },
-    { label: "Signature", value: stats.fun_stat }
+    { label: stats.card_1_label || "Systems Built", value: stats.card_1_value || "12+" },
+    { label: stats.card_2_label || "ECG F1-Score", value: stats.card_2_value || "94%" },
+    { label: stats.card_3_label || "Biomedical Signal Processing", value: stats.card_3_value || "Healthcare AI" },
+    { label: stats.card_4_label || "Research to Production", value: stats.card_4_value || "AI + Backend" }
   ];
 
   return (

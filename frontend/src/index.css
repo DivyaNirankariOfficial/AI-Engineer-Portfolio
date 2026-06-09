@@ -7,12 +7,12 @@
     --ivory: #f0ebe0;
     --ivory-deep: #e8e0d0;
     --ivory-dark: #ddd4c0;
-    --warm-brown: #4a3a28;
-    --warm-mid: #7a6a55;
-    --warm-light: #a09878;
-    --accent: #b89868;
-    --accent-deep: #8a6a45;
-    --warm-black: #1a1510;
+    --warm-brown: #4a433d;
+    --warm-mid: #756e67;
+    --warm-light: #9e9790;
+    --accent: #5c4b78;       /* Muted deep purple */
+    --accent-deep: #70506f;  /* Muted heather/plum highlight */
+    --warm-black: #2b2927;   /* Warm charcoal text */
     --bg-glass: rgba(240, 235, 224, 0.88);
   }
 

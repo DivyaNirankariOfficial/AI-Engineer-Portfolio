@@ -6,7 +6,7 @@
     "phone": "+91 9265768306",
     "location": "Surat, Gujarat, India",
     "summary": "AI/ML Engineer with 4+ years of experience specializing in healthcare AI and production-grade machine learning systems. Developed a high-accuracy ECG cardiac abnormality detection model (94% F1-score) using 1D ResNet architectures on the PhysioNet/CinC Challenge dataset. Proven expertise in building scalable REST APIs (10,000+ daily requests, 99.9% uptime) and optimizing database performance (40% faster query times) using FastAPI and PostgreSQL. Skilled in Python, PyTorch, and deep learning, with a focus on bridging the gap between research and real-world deployment.",
-    "bio": "As a seasoned software development expert, I possess a unique ability to craft and deploy high-performance, scalable web applications that harness the power of cutting-edge technologies, including the design and implementation of innovative machine learning models that catalyze business growth, optimize operational efficiency, and inform strategic decision-making, ultimately driving transformative outcomes and propelling organizations forward.",
+    "bio": "Exploring intelligence across brains, machines, and medicine.",
     "postal_code": "395001",
     "address": "Surat, Gujarat, India",
     "address_ja": "インド、グジャラート州、スーラト",
@@ -44,8 +44,11 @@
     "photo": "uploads/profile_photo.jpg",
     "timezone": "IST",
     "titles": [
-      "Software Engineer",
-      "AI Engineer"
+      "Artificial Intelligence",
+      "NeuroAI",
+      "Healthcare AI",
+      "Robotics",
+      "Intelligent Systems"
     ],
     "alternate_phone": "",
     "notice_period": "Immediately available (0 days notice period)",
@@ -66,8 +69,13 @@
     "name_furigana": "ディヴィア・ニランカリ",
     "address_furigana": "インド、グジャラート州、スーラト",
     "summary_zh": "资深Python与AI/ML工程师，专注于医疗AI及生物医学信号处理。曾在Logixbuilt Infotech主导高并发REST API开发（日均请求1万+，可用性99.9%），并通过PostgreSQL优化将响应速度提升40%。独立开发基于PhysioNet数据集的ECG心脏异常检测模型，采用1D ResNet架构，F1分数达94%。具备从科研到生产环境落地的全栈能力。",
-    "summary_ko": "실무 경험을 보유한 Python 및 AI/ML 엔지니어로, 의료 AI 및 생체 신호 처리 분야에 전문성을 갖추고 있습니다. Logixbuilt Infotech에서 일일 1만 건 이상의 요청을 처리하는 고가용성 REST API를 개발하고 PostgreSQL 쿼리 최적화를 통해 성능을 40% 향상시켰습니다. PhysioNet 데이터셋을 활용하여 94%의 F1-score를 기록한 1D ResNet 기반 ECG 심장 이상 탐지 모델을 독자적으로 개발했습니다. 연구 성과를 실제 서비스로 구현하는 데 강점이 있습니다."
+    "summary_ko": "Python 및 AI/ML 엔지니어로, 의료 AI 및 생체 신호 처리 분야에 전문성을 갖추고 있습니다. Logixbuilt Infotech에서 일일 1만 건 이상의 요청을 처리하는 고가용성 REST API를 개발하고 PostgreSQL 쿼리 최적화를 통해 성능을 40% 향상시켰습니다. PhysioNet 데이터셋을 활용하여 94%의 F1-score를 기록한 1D ResNet 기반 ECG 심장 이상 탐지 모델을 독자적으로 개발했습니다. 연구 성과를 실제 서비스로 구현하는 데 강점이 있습니다."
   },
+  "about": [
+    "I am a Python and AI/ML Engineer with a deep focus on Healthcare AI, building systems that bridge cutting-edge research with real-world impact.",
+    "My core expertise is in biomedical signal processing — I have designed ECG cardiac abnormality detection models using 1D CNN and ResNet architectures, achieving 94% F1-score on the PhysioNet dataset.",
+    "On the backend, I architect scalable FastAPI systems, Redis-cached data pipelines, and production ML inference APIs deployed for international clients. As my work evolves, I am increasingly interested in NeuroAI, brain-inspired intelligence, and the intersection of biological and artificial learning systems."
+  ],
   "education": [
     {
       "degree": "Master of Computer Applications (MCA)",
@@ -132,7 +140,7 @@
       "role": "Developer",
       "techStack": "AI, ML, Image Processing",
       "visible": true,
-      "period": "Jan 2024 - Dec 2025",
+      "period": "2024 - 2025",
       "github": "https://github.com/dv5198/Parkinson-Disease-Detection"
     },
     {
@@ -141,7 +149,7 @@
       "techStack": "React, Tailwind CSS, FastAPI, Playwright, SQLite",
       "role": "Full Stack / Lead Developer",
       "visible": true,
-      "period": "Oct 2024 - Present",
+      "period": "2024 - 2025",
       "github": "https://github.com/dv5198/AI-Engineer-Portfolio"
     }
   ],
@@ -153,7 +161,7 @@
       "issuer": "Gujarat University",
       "description": "Academic excellence award in Data Structures",
       "visible": true,
-      "month": "03"
+      "month": "05"
     },
     {
       "id": "ach_award_2",
@@ -171,7 +179,7 @@
       "issuer": "Gujarat University",
       "description": "Awarded Student of the Year across the department",
       "visible": true,
-      "month": "09"
+      "month": "11"
     },
     {
       "id": "ach_award_4",
@@ -180,7 +188,7 @@
       "issuer": "Logixbuilt Infotech",
       "description": "Recognized for exceptional commitment and performance.",
       "visible": true,
-      "month": "11"
+      "month": "08"
     }
   ],
   "languages": [
@@ -270,8 +278,19 @@
     "activity": false,
     "timeline": false,
     "research": true,
+    "exploring": true,
     "testimonials": true,
     "blog": true
+  },
+  "stats": {
+    "card_1_value": "12+",
+    "card_1_label": "Systems Built",
+    "card_2_value": "94%",
+    "card_2_label": "ECG F1-Score",
+    "card_3_value": "Healthcare AI",
+    "card_3_label": "Biomedical Signal Processing",
+    "card_4_value": "AI + Backend",
+    "card_4_label": "Research to Production"
   },
   "project_visibility": {
     "dv5198": false,
@@ -356,7 +375,69 @@
       "visible": true
     }
   ],
-  "researchInterests": [],
+  "researchInterests": [
+    {
+      "id": "interest_1",
+      "topic": "Artificial Intelligence & Machine Learning",
+      "description": "Interested in how intelligent systems learn, adapt, and generalize. Exploring machine learning, deep learning, and modern AI architectures that can solve complex real-world problems.",
+      "visible": true
+    },
+    {
+      "id": "interest_2",
+      "topic": "NeuroAI",
+      "description": "Exploring how insights from neuroscience can inspire more capable artificial intelligence systems. Interested in biologically inspired learning, cognition, and brain-inspired architectures.",
+      "visible": true
+    },
+    {
+      "id": "interest_3",
+      "topic": "Healthcare AI",
+      "description": "Interested in applying AI to improve healthcare outcomes through predictive modeling, medical data analysis, and intelligent decision-support systems.",
+      "visible": true
+    },
+    {
+      "id": "interest_4",
+      "topic": "Computational Neuroscience",
+      "description": "Exploring how the brain processes information and how computational models can help us better understand learning, perception, and cognition.",
+      "visible": true
+    },
+    {
+      "id": "interest_5",
+      "topic": "Robotics & Intelligent Systems",
+      "description": "Interested in autonomous systems that combine perception, decision-making, and action. Exploring how intelligent agents interact with and adapt to the physical world.",
+      "visible": true
+    }
+  ],
+  "currentlyExploring": [
+    {
+      "id": "explore_1",
+      "theme": "NeuroAI",
+      "description": "Exploring how insights from neuroscience can contribute to more capable AI systems.",
+      "visible": true
+    },
+    {
+      "id": "explore_2",
+      "theme": "Healthcare AI",
+      "description": "Interested in applying machine learning to real-world healthcare challenges.",
+      "visible": true
+    },
+    {
+      "id": "explore_3",
+      "theme": "Brain-Inspired Learning",
+      "description": "Studying how biological learning mechanisms can inform artificial intelligence.",
+      "visible": true
+    },
+    {
+      "id": "explore_4",
+      "theme": "Human-Robot Interaction",
+      "description": "Exploring intelligent systems that collaborate naturally with people.",
+      "visible": true
+    }
+  ],
+  "researchNarrative": {
+    "enabled": false,
+    "title": "Research Direction",
+    "content": "Beyond my current work, I am increasingly interested in NeuroAI, brain-inspired intelligence, and intelligent systems. I am particularly drawn to understanding how insights from biological systems can inform the development of more capable, adaptive, and efficient AI."
+  },
   "regional_cover_letters": {
     "uk": "I am writing to express my strong interest in AI Engineer opportunities within the UK's burgeoning tech sector. With 3+ years of experience in healthcare AI and backend optimization, I am eager to contribute to UK-based innovation. I am particularly interested in how British healthtech firms are leveraging machine learning for early diagnosis. I require UK Skilled Worker visa sponsorship and am prepared for relocation.",
     "usa": "I am highly motivated to bring my 3+ years of expertise in AI/ML and production-grade backend systems to the US technology market. My work on ECG abnormality detection using 1D ResNet aligns perfectly with the advanced medical AI research occurring in the United States. I am seeking H-1B visa sponsorship and am ready to contribute to world-class engineering teams.",

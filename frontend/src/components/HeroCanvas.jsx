@@ -55,7 +55,7 @@ const HeroCanvas = () => {
 
     // Points
     const pMaterial = new THREE.PointsMaterial({
-      color: 0x8a6a45,
+      color: 0x5c4b78,
       size: 0.04,
       transparent: true,
       opacity: 0.8,
@@ -147,10 +147,10 @@ const HeroCanvas = () => {
             linePositions[vertexpos++] = particlePositions[j * 3 + 2];
 
             // Color gradient based on distance
-            // Base color: 0x8a6a45 (R=0.54, G=0.41, B=0.27)
-            const r = 0.54 * alpha;
-            const g = 0.41 * alpha;
-            const b = 0.27 * alpha;
+            // Base color: #5c4b78 (R=0.36, G=0.29, B=0.47)
+            const r = 0.36 * alpha;
+            const g = 0.29 * alpha;
+            const b = 0.47 * alpha;
 
             lineColors[colorpos++] = r;
             lineColors[colorpos++] = g;

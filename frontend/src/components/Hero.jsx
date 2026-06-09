@@ -24,7 +24,13 @@ const itemVariants = {
 
 const Hero = () => {
   const { data } = useContext(PortfolioContext);
-  const titles = data?.profile?.titles || ["Python Software Engineer", "AI/ML Engineer", "Backend Developer", "Deep Learning Engineer"];
+  const titles = data?.profile?.titles || [
+    "Artificial Intelligence",
+    "NeuroAI",
+    "Healthcare AI",
+    "Robotics",
+    "Intelligent Systems"
+  ];
   const typewriterText = useTypewriter(titles);
 
   const downloadUrl = `http://localhost:8000/api/resume/download?download=true`;
@@ -78,9 +84,9 @@ const Hero = () => {
 
           <motion.div variants={itemVariants} className="flex flex-col gap-8">
             <div className="w-full h-px bg-textPrimary/5" />
-            {/* <p className="text-xl md:text-2xl font-sans text-textPrimary opacity-80 leading-relaxed font-light">
+            <p className="text-xl md:text-2xl font-sans text-textPrimary opacity-80 leading-relaxed font-light">
                {profile.bio}
-            </p> */}
+            </p>
 
             <div className="flex flex-col lg:flex-row lg:items-center gap-8 pt-4 w-full">
               <a href="#projects" className="group flex items-center gap-4 font-mono text-xs uppercase tracking-[0.2em] text-textPrimary whitespace-nowrap">

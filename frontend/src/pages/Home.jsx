@@ -10,6 +10,7 @@ import Contact from '../components/Contact';
 import Footer from '../components/Footer';
 import ActivityHeatmap from '../components/ActivityHeatmap';
 import Research from '../components/Research';
+import CurrentlyExploring from '../components/CurrentlyExploring';
 import Testimonials from '../components/Testimonials';
 import Blog from '../components/Blog';
 import Loader from '../components/Loader';
@@ -40,6 +41,8 @@ const Home = () => {
         <main className="w-full">
           <Hero />
           <About />
+          <Research />
+          <CurrentlyExploring />
           <Experience />
           <Skills />
           <ActivityHeatmap />
@@ -48,7 +51,6 @@ const Home = () => {
           <Testimonials />
           <Blog />
           <Contact />
-          <Research />
         </main>
         <Footer />
       </div>

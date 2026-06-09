@@ -6,34 +6,37 @@ const Research = () => {
   const { data } = useContext(PortfolioContext);
   if (!data || !data.sections_visibility?.research) return null;
 
-  const interests = data.researchInterests?.filter(i => i.visible !== false).slice(0, 6) || [];
+  const interests = data.researchInterests?.filter(i => i.visible !== false) || [];
 
   return (
-    <section id="research" className="py-16 px-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-20 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-warmBrown/40 mb-4 italic">Next Frontier // 07</p>
-          <h2 className="text-5xl md:text-6xl font-serif text-warmBrown">Research Lab</h2>
+    <section id="research" className="py-20 px-6 bg-background">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-20">
+          <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-textPrimary/40 mb-4">Focus Areas // 02</p>
+          <h2 className="text-6xl md:text-7xl font-serif text-textPrimary italic">Research Interests</h2>
         </div>
 
-        <div className="flex flex-wrap gap-8 justify-center">
-            {interests.length > 0 ? interests.map((item, idx) => (
-                <motion.div
-                    key={item.id || idx}
-                    initial={{ opacity: 0, y: 40 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.8, ease: "easeOut", delay: idx * 0.1 }}
-                    className="bg-ivory-deep/30 border border-accent/20 p-8 rounded-sm max-w-sm hover:border-accent transition-colors duration-500"
-                >
-                    <h3 className="text-xl font-serif italic text-warmBrown mb-2">{item.topic}</h3>
-                    <p className="font-mono text-[10px] leading-relaxed text-warmMid uppercase tracking-wider">
-                        {item.description}
-                    </p>
-                </motion.div>
-            )) : (
-                <p className="font-mono text-sm text-warmBrown/30 italic">Exploring new horizons...</p>
-            )}
+        <div className="grid md:grid-cols-2 gap-x-16 gap-y-12 border-t border-textPrimary/5 pt-12">
+          {interests.length > 0 ? interests.map((item, idx) => (
+            <motion.div
+              key={item.id || idx}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, ease: [0.33, 1, 0.68, 1], delay: idx * 0.1 }}
+              className="flex flex-col gap-3 group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[10px] text-accent tracking-widest">0{idx + 1} //</span>
+                <h3 className="text-2xl font-serif text-textPrimary group-hover:text-accent transition-colors duration-500">{item.topic}</h3>
+              </div>
+              <p className="text-lg font-sans text-textPrimary/70 leading-relaxed font-light pl-6">
+                {item.description}
+              </p>
+            </motion.div>
+          )) : (
+            <p className="font-mono text-sm text-textPrimary/30 italic">Exploring new horizons...</p>
+          )}
         </div>
       </div>
     </section>

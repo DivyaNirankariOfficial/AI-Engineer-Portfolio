@@ -116,13 +116,17 @@ DEFAULT_DATA = {
     "about": [
         "I am a Python and AI/ML Engineer with a deep focus on Healthcare AI, building systems that bridge cutting-edge research with real-world impact.",
         "My core expertise is in biomedical signal processing — I have designed ECG cardiac abnormality detection models using 1D CNN and ResNet architectures, achieving 94% F1-score on the PhysioNet dataset.",
-        "On the backend, I architect scalable FastAPI systems, Redis-cached data pipelines, and production ML inference APIs deployed for international clients."
+        "On the backend, I architect scalable FastAPI systems, Redis-cached data pipelines, and production ML inference APIs deployed for international clients. As my work evolves, I am increasingly interested in NeuroAI, brain-inspired intelligence, and the intersection of biological and artificial learning systems."
     ],
     "stats": {
-        "projects_count": "12+",
-        "years_experience": "3+",
-        "ml_models": "6+",
-        "fun_stat": "94% F1-Score on ECG Model"
+        "card_1_value": "12+",
+        "card_1_label": "Systems Built",
+        "card_2_value": "94%",
+        "card_2_label": "ECG F1-Score",
+        "card_3_value": "Healthcare AI",
+        "card_3_label": "Biomedical Signal Processing",
+        "card_4_value": "AI + Backend",
+        "card_4_label": "Research to Production"
     },
     "skills": ["Python", "JavaScript", "React", "FastAPI", "PyTorch", "TensorFlow", "SQL", "Docker", "AWS"],
     "skillCategories": [
@@ -152,11 +156,43 @@ DEFAULT_DATA = {
         "activity": False,
         "timeline": True,
         "research": False,
+        "exploring": True,
         "testimonials": False,
         "blog": False
     },
     "project_visibility": {},
     "researchInterests": [],
+    "currentlyExploring": [
+        {
+            "id": "explore_1",
+            "theme": "NeuroAI",
+            "description": "Exploring how insights from neuroscience can contribute to more capable AI systems.",
+            "visible": True
+        },
+        {
+            "id": "explore_2",
+            "theme": "Healthcare AI",
+            "description": "Interested in applying machine learning to real-world healthcare challenges.",
+            "visible": True
+        },
+        {
+            "id": "explore_3",
+            "theme": "Brain-Inspired Learning",
+            "description": "Studying how biological learning mechanisms can inform artificial intelligence.",
+            "visible": True
+        },
+        {
+            "id": "explore_4",
+            "theme": "Human-Robot Interaction",
+            "description": "Exploring intelligent systems that collaborate naturally with people.",
+            "visible": True
+        }
+    ],
+    "researchNarrative": {
+        "enabled": False,
+        "title": "Research Direction",
+        "content": "Beyond my current work, I am increasingly interested in NeuroAI, brain-inspired intelligence, and intelligent systems. I am particularly drawn to understanding how insights from biological systems can inform the development of more capable, adaptive, and efficient AI."
+    },
     "testimonials": [],
     "blogPosts": [],
     "languages": [
@@ -315,69 +351,32 @@ def load_data():
     if "stats" not in data:
         data["stats"] = {}
 
-    # 1. Years of Experience
-    from datetime import datetime
-    import re
-    earliest_date = None
-    for exp in data.get("experience", []):
-        if not exp.get("visible", True):
-            continue
-        start_str = exp.get("startDate", "").strip()
-        if not start_str:
-            continue
-        try:
-            dt = datetime.strptime(start_str, "%b %Y")
-        except ValueError:
-            try:
-                dt = datetime.strptime(start_str[:7], "%Y-%m")
-            except ValueError:
-                match = re.search(r'\b(20\d{2}|19\d{2})\b', start_str)
-                if match:
-                    dt = datetime(int(match.group(1)), 1, 1)
-                else:
-                    continue
-        if earliest_date is None or dt < earliest_date:
-            earliest_date = dt
-            
-    if earliest_date:
-        now = datetime.now()
-        diff = now.year - earliest_date.year - ((now.month, now.day) < (earliest_date.month, earliest_date.day))
-        data["stats"]["years_experience"] = f"{max(diff, 0)}+"
-    else:
-        data["stats"]["years_experience"] = "4+"
-
-    # 2. Projects Count
+    # Calculate dynamic project count
     manual_count = sum(1 for p in data.get("projects", []) if p.get("visible") is not False)
     github_count = sum(1 for k, v in data.get("project_visibility", {}).items() if v is not False)
     total_projects = manual_count + github_count
-    data["stats"]["projects_count"] = f"{max(total_projects, 12)}+"
+    dynamic_project_count = f"{max(total_projects, 12)}+"
 
-    # 3. ML Models / Systems Built
-    ml_keywords = {"pytorch", "tensorflow", "keras", "scikit-learn", "sklearn", "cnn", "resnet", "lstm", "random forest", "nlp", "computer vision", "biomedical signal processing", "ecg", "ml", "machine learning", "deep learning", "physionet", "1d cnn"}
-    ml_count = 0
-    for p in data.get("projects", []):
-        text = f"{p.get('name', '')} {p.get('description', '')} {p.get('summary', '')} {p.get('techStack', '')}".lower()
-        if any(kw in text for kw in ml_keywords):
-            ml_count += 1
-            
-    for exp in data.get("experience", []):
-        full_text = f"{exp.get('company', '')} {exp.get('role', '')} {' '.join(exp.get('bullets', []))}".lower()
-        if "ecg" in full_text or "cardiac" in full_text:
-            ml_count += 1
-        if "chatbot" in full_text or "nlp" in full_text:
-            ml_count += 1
-        if "prediction" in full_text or "model" in full_text:
-            ml_count += 1
-            
-    for k in data.get("project_visibility", {}).keys():
-        k_lower = k.lower()
-        if any(kw in k_lower for kw in ["ml", "ai", "model", "detection", "prediction", "classifier", "neural", "parkinson", "ecg"]):
-            ml_count += 1
-            
-    data["stats"]["ml_models"] = f"{max(ml_count, 6)}+"
+    # Set default values if not present
+    if "card_1_value" not in data["stats"]:
+        data["stats"]["card_1_value"] = dynamic_project_count
+    if "card_1_label" not in data["stats"]:
+        data["stats"]["card_1_label"] = "Systems Built"
 
-    if not data["stats"].get("fun_stat"):
-        data["stats"]["fun_stat"] = "94% F1-Score on ECG Model"
+    if "card_2_value" not in data["stats"]:
+        data["stats"]["card_2_value"] = "94%"
+    if "card_2_label" not in data["stats"]:
+        data["stats"]["card_2_label"] = "ECG F1-Score"
+
+    if "card_3_value" not in data["stats"]:
+        data["stats"]["card_3_value"] = "Healthcare AI"
+    if "card_3_label" not in data["stats"]:
+        data["stats"]["card_3_label"] = "Biomedical Signal Processing"
+
+    if "card_4_value" not in data["stats"]:
+        data["stats"]["card_4_value"] = "AI + Backend"
+    if "card_4_label" not in data["stats"]:
+        data["stats"]["card_4_label"] = "Research to Production"
 
     # ── Update RAM cache ──────────────────────────────────────────────────────
     _data_cache = data

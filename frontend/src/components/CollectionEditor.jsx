@@ -48,7 +48,8 @@ const SortableItem = ({ id, item, type, onEdit, onDelete, onToggleVisibility }) 
              type === 'connections' ? item.platform :
              type === 'extracurriculars' ? item.title :
              type === 'research' ? item.topic :
-             type === 'skills' ? item.label : (item.name || item.title || 'Untitled Artifact')}
+             type === 'exploring' ? item.theme :
+             type === 'skills' ? item.label : (item.theme || item.name || item.title || 'Untitled Artifact')}
         </h4>
         <p className="font-mono text-[9px] text-warmBrown/40 uppercase tracking-widest truncate">
             {type === 'experience' ? item.role : 
@@ -60,6 +61,7 @@ const SortableItem = ({ id, item, type, onEdit, onDelete, onToggleVisibility }) 
              type === 'extracurriculars' ? item.duration :
              type === 'connections' ? (item.handle || item.url || 'No Link') :
              type === 'research' ? item.description :
+             type === 'exploring' ? item.description :
              type === 'skills' ? `${item.items?.length || 0} skills` : (item.level || item.id || 'Active Node')}
         </p>
       </div>
@@ -84,7 +86,7 @@ const SortableItem = ({ id, item, type, onEdit, onDelete, onToggleVisibility }) 
 
 const getItemId = (i) => {
   if (!i) return 'unknown';
-  return i.id || i.name || i.title || i.company || i.university || i.topic || i.label || i.platform || i.date || JSON.stringify(i);
+  return i.id || i.theme || i.name || i.title || i.company || i.university || i.topic || i.label || i.platform || i.date || JSON.stringify(i);
 };
 
 const CollectionEditor = ({ type, items, setItems, onEdit }) => {
