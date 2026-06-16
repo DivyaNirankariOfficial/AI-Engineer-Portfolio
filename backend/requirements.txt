@@ -5,6 +5,7 @@ python-multipart==0.0.20
 
 # Database
 SQLAlchemy==2.0.36
+filelock==3.16.1
 
 # Environment & config
 python-dotenv==1.0.1
