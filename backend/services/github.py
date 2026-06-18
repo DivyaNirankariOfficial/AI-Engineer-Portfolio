@@ -205,6 +205,11 @@ async def fetch_github_projects(username: str) -> list:
 
     token = os.getenv("GITHUB_TOKEN") or GITHUB_TOKEN
     headers = {"Accept": "application/vnd.github.v3+json"}
+    print("=" * 50)
+    print("GITHUB USERNAME:", username)
+    print("TOKEN EXISTS:", bool(token))
+    print("TOKEN LENGTH:", len(token) if token else 0)
+    print("=" * 50)
     if token:
         headers["Authorization"] = f"token {token}"
 
