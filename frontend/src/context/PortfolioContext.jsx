@@ -30,7 +30,7 @@ export const PortfolioProvider = ({ children }) => {
           name: "Divya Nirankari",
           role: "Software Engineer & AI/ML Engineer",
           bio: "I build scalable web applications and intelligent machine learning models.",
-          github: "https://github.com/dv5198",
+          github: "https://github.com/DivyaNirankariOfficial",
           linkedin: "https://linkedin.com/in/divya-nirankari",
           email: "dvnirankari@gmail.com"
         },

@@ -76,25 +76,25 @@ const ContactForm = () => {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label htmlFor="contact-name" className="block font-mono text-[9px] uppercase tracking-widest text-warmBrown/40 px-1">Full Name *</label>
+                <label htmlFor="contact-name" className="block font-mono text-[9px] uppercase tracking-widest text-textSecondary px-1">Full Name *</label>
                 <input
                   id="contact-name"
                   type="text"
                   required
                   placeholder="Your Name"
-                  className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-warmBrown/20 transition-colors"
+                  className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-textSecondary/40 transition-colors"
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <label htmlFor="contact-email" className="block font-mono text-[9px] uppercase tracking-widest text-warmBrown/40 px-1">Email Address *</label>
+                <label htmlFor="contact-email" className="block font-mono text-[9px] uppercase tracking-widest text-textSecondary px-1">Email Address *</label>
                 <input
                   id="contact-email"
                   type="email"
                   required
                   placeholder="you@domain.com"
-                  className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-warmBrown/20 transition-colors"
+                  className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-textSecondary/40 transition-colors"
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value.replace(/\s+/g, '')})}
                 />
@@ -102,25 +102,25 @@ const ContactForm = () => {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="contact-subject" className="block font-mono text-[9px] uppercase tracking-widest text-warmBrown/40 px-1">Subject</label>
+              <label htmlFor="contact-subject" className="block font-mono text-[9px] uppercase tracking-widest text-textSecondary px-1">Subject</label>
               <input
                 id="contact-subject"
                 type="text"
                 placeholder="Regarding project..."
-                className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-warmBrown/20 transition-colors"
+                className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-textSecondary/40 transition-colors"
                 value={formData.subject}
                 onChange={e => setFormData({...formData, subject: e.target.value})}
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="contact-message" className="block font-mono text-[9px] uppercase tracking-widest text-warmBrown/40 px-1">Message *</label>
+              <label htmlFor="contact-message" className="block font-mono text-[9px] uppercase tracking-widest text-textSecondary px-1">Message *</label>
               <textarea
                 id="contact-message"
                 required
                 rows={5}
                 placeholder="What's on your mind?"
-                className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-warmBrown/20 transition-colors resize-none"
+                className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-textSecondary/40 transition-colors resize-none"
                 value={formData.message}
                 onChange={e => setFormData({...formData, message: e.target.value})}
               />

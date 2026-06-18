@@ -103,10 +103,12 @@ DEFAULT_DATA = {
             "AE": "Requires employer-sponsored employment visa",
             "IN": "Indian citizen — no visa required",
             "GLOBAL": "Relocation sponsorship required"
-        }
+        },
+        "github": "https://github.com/DivyaNirankariOfficial",
+        "github_username": "DivyaNirankariOfficial"
     },
     "connections": [
-        {"id": "conn_1", "platform": "GitHub", "url": "https://github.com/dv5198", "handle": "dv5198", "visible": True, "order": 0},
+        {"id": "conn_1", "platform": "GitHub", "url": "https://github.com/DivyaNirankariOfficial", "handle": "DivyaNirankariOfficial", "visible": True, "order": 0},
         {"id": "conn_2", "platform": "LinkedIn", "url": "https://www.linkedin.com/in/divya-nirankari/", "handle": "Divya Nirankari", "visible": True, "order": 1},
         {"id": "conn_3", "platform": "Email", "url": "mailto:dvnirankari@gmail.com", "handle": "dvnirankari@gmail.com", "visible": True, "order": 2},
         {"id": "conn_4", "platform": "YouTube", "url": "", "handle": "", "visible": False, "order": 3},
@@ -337,6 +339,24 @@ def load_data():
             for k, v in DEFAULT_DATA.items():
                 if k not in data:
                     data[k] = v
+                    changed = True
+
+            # ── Sync github / github_username in profile from connections ────────────
+            connections = data.get("connections", [])
+            github_conn = next((c for c in connections if c.get("platform", "").lower() == "github"), None)
+            if github_conn:
+                github_url = github_conn.get("url", "")
+                github_handle = github_conn.get("handle", "")
+                
+                # Determine username from handle, fallback to url parsing
+                username = github_handle
+                if not username and github_url:
+                    username = github_url.rstrip("/").split("/")[-1]
+                    
+                profile = data.setdefault("profile", {})
+                if profile.get("github") != github_url or profile.get("github_username") != username:
+                    profile["github"] = github_url
+                    profile["github_username"] = username
                     changed = True
 
             # ── Trim activityLog to 50 entries max ────────────────────────────

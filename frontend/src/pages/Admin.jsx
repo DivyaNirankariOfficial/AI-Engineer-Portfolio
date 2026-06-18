@@ -1001,7 +1001,7 @@ const Admin = () => {
                             <div className="flex items-center gap-6 bg-white/80 backdrop-blur-xl p-6 border border-warmBrown/10 shadow-lg rounded-xl">
                                 <div className="flex items-center gap-6">
                                     <div className="flex flex-col gap-1.5">
-                                        <label htmlFor="preview-country" className="font-mono text-[8px] uppercase tracking-[0.3em] text-accent font-bold">Country Context</label>
+                                        <label htmlFor="preview-country" className="font-mono text-[8px] uppercase tracking-[0.3em] text-textSecondary font-bold">Country Context</label>
                                         <select
                                             id="preview-country"
                                             className="border-none py-1 focus:outline-none focus:ring-0 font-serif text-xl bg-transparent italic text-warmBrown cursor-pointer hover:text-accent transition-all"
@@ -1038,7 +1038,7 @@ const Admin = () => {
                                     <div className="h-10 w-px bg-warmBrown/10" />
 
                                     <div className="flex items-center gap-3 bg-ivory/20 px-4 py-2 rounded-lg border border-warmBrown/5">
-                                        <label className="font-mono text-[8px] uppercase tracking-widest text-warmBrown/40">Cover Letter</label>
+                                        <label className="font-mono text-[8px] uppercase tracking-[0.3em] text-textSecondary font-bold">Cover Letter</label>
                                         <button
                                             onClick={() => {
                                                 setIsRefreshing(true);
@@ -1143,33 +1143,33 @@ const Admin = () => {
                                         </h4>
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between text-[10px] font-mono">
-                                                <span className="text-warmBrown/40 uppercase">Country</span>
+                                                <span className="text-textSecondary uppercase">Country</span>
                                                 <span className="text-warmBrown font-bold capitalize">{previewCountry}</span>
                                             </div>
                                             <div className="flex items-center justify-between text-[10px] font-mono">
-                                                <span className="text-warmBrown/40 uppercase">Language</span>
+                                                <span className="text-textSecondary uppercase">Language</span>
                                                 <span className="text-warmBrown font-bold uppercase">{previewLanguage}</span>
                                             </div>
                                             <div className="flex items-center justify-between text-[10px] font-mono">
-                                                <span className="text-warmBrown/40 uppercase">Template</span>
+                                                <span className="text-textSecondary uppercase">Template</span>
                                                 <span className="text-warmBrown">v8.2 Final</span>
                                             </div>
 
                                             <div className="pt-2 border-t border-warmBrown/5 space-y-2">
                                                 <div className="flex items-center justify-between text-[9px] font-mono">
-                                                    <span className="text-warmBrown/40">PHOTO POLICY</span>
+                                                    <span className="text-textSecondary">PHOTO POLICY</span>
                                                     <span className={`${['usa', 'uk', 'international'].includes(previewCountry) ? 'text-emerald-600' : 'text-amber-600'} font-bold`}>
                                                         {['usa', 'uk', 'international'].includes(previewCountry) ? 'HIDDEN' : 'SHOWN'}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between text-[9px] font-mono">
-                                                    <span className="text-warmBrown/40">DOB POLICY</span>
+                                                    <span className="text-textSecondary">DOB POLICY</span>
                                                     <span className={`${['usa', 'uk'].includes(previewCountry) ? 'text-emerald-600' : 'text-amber-600'} font-bold`}>
                                                         {['usa', 'uk'].includes(previewCountry) ? 'HIDDEN' : 'SHOWN'}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between text-[9px] font-mono">
-                                                    <span className="text-warmBrown/40">COVER LETTER</span>
+                                                    <span className="text-textSecondary">COVER LETTER</span>
                                                     <span className={`${includeCoverLetter ? 'text-emerald-600' : 'text-warmBrown/20'} font-bold`}>
                                                         {includeCoverLetter ? 'INCLUDED' : 'SKIPPED'}
                                                     </span>
@@ -1181,7 +1181,7 @@ const Admin = () => {
 
                                             <div className="pt-3 border-t border-warmBrown/5">
                                                 <div className="flex justify-between items-center mb-1.5">
-                                                    <span className="font-mono text-[8px] uppercase text-warmBrown/40">ATS Score</span>
+                                                    <span className="font-mono text-[8px] uppercase text-textSecondary">ATS Score</span>
                                                     <span className={`font-mono text-[10px] font-bold ${atsScore > 80 ? 'text-emerald-600' : atsScore > 50 ? 'text-amber-600' : 'text-red-500'}`}>{atsScore} / 100</span>
                                                 </div>
                                                 <div className="w-full h-2 bg-warmBrown/5 rounded-full overflow-hidden p-[1px]">

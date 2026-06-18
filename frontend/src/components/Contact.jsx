@@ -45,7 +45,7 @@ const Contact = () => {
         {/* Left: Info & Links */}
         <div className="space-y-16">
           <div className="space-y-8">
-            <h2 className="text-6xl md:text-8xl font-serif italic leading-tight text-warmBlack">Get In<br />Touch</h2>
+            <h2 className="text-6xl md:text-8xl font-serif italic leading-tight text-textPrimary">Get In<br />Touch</h2>
             <p className="font-serif italic text-2xl text-warmBrown/60 max-w-md leading-relaxed">
               Interested in the intersection of scalable systems and machine intelligence.
             </p>

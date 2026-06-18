@@ -118,6 +118,11 @@ async def fetch_readme_image(
             url = f"https://api.github.com/repos/{username}/{repo}/readme"
             response = await client.get(url, headers=headers, timeout=8.0)
 
+            if response.status_code == 401 and "Authorization" in headers:
+                # Retry without token
+                headers_no_auth = {k: v for k, v in headers.items() if k != "Authorization"}
+                response = await client.get(url, headers=headers_no_auth, timeout=8.0)
+
             if response.status_code == 404:
                 continue
             response.raise_for_status()
@@ -179,14 +184,14 @@ def clear_readme_cache_for_repo(repo: str) -> None:
 # ─────────────────────────────────────────────
 # IN-MEMORY REPOSITORIES CACHE
 # ─────────────────────────────────────────────
-_repos_cache: list = []
-_repos_cache_ts: float = 0.0
+_repos_cache: dict = {}
+_repos_cache_ts: dict = {}
 _REPOS_CACHE_TTL = 3600  # Cache for 1 hour
 
 def clear_github_repos_cache() -> None:
     global _repos_cache, _repos_cache_ts
-    _repos_cache = []
-    _repos_cache_ts = 0.0
+    _repos_cache = {}
+    _repos_cache_ts = {}
 
 async def fetch_github_projects(username: str) -> list:
     """
@@ -200,8 +205,8 @@ async def fetch_github_projects(username: str) -> list:
     Returns list of project dicts ready for portfolio rendering.
     """
     global _repos_cache, _repos_cache_ts
-    if _repos_cache and (time.time() - _repos_cache_ts < _REPOS_CACHE_TTL):
-        return _repos_cache
+    if username in _repos_cache and (time.time() - _repos_cache_ts.get(username, 0) < _REPOS_CACHE_TTL):
+        return _repos_cache[username]
 
     token = os.getenv("GITHUB_TOKEN") or GITHUB_TOKEN
     headers = {"Accept": "application/vnd.github.v3+json"}
@@ -220,6 +225,20 @@ async def fetch_github_projects(username: str) -> list:
             response = await client.get(url, headers=headers, timeout=10.0)
             response.raise_for_status()
             repos = response.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 401 and "Authorization" in headers:
+                print("[fetch_github_projects] Got 401 Unauthorized with token, retrying without token...")
+                headers_no_auth = {k: v for k, v in headers.items() if k != "Authorization"}
+                try:
+                    response = await client.get(url, headers=headers_no_auth, timeout=10.0)
+                    response.raise_for_status()
+                    repos = response.json()
+                except Exception as retry_e:
+                    print(f"[fetch_github_projects] Error fetching repo list on retry: {retry_e}")
+                    return []
+            else:
+                print(f"[fetch_github_projects] HTTP error fetching repo list: {e}")
+                return []
         except Exception as e:
             print(f"[fetch_github_projects] Error fetching repo list: {e}")
             return []
@@ -250,6 +269,10 @@ async def fetch_github_projects(username: str) -> list:
                 "techStack": r.get("language") or "Code",
                 "stars": r.get("stargazers_count", 0),
                 "url": r.get("html_url"),
+                "html_url": r.get("html_url"),
+                "homepage": r.get("homepage"),
+                "language": r.get("language"),
+                "topics": r.get("topics", []),
                 "updated_at": r.get("updated_at"),
                 "default_branch": default_branch,
                 # NEW — README image for portfolio cards and resume
@@ -265,6 +288,6 @@ async def fetch_github_projects(username: str) -> list:
         )
 
         final_list = list(enriched)
-        _repos_cache = final_list
-        _repos_cache_ts = time.time()
+        _repos_cache[username] = final_list
+        _repos_cache_ts[username] = time.time()
         return final_list

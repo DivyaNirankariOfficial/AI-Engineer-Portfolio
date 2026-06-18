@@ -79,7 +79,6 @@ const Hero = () => {
             <div className="w-24 h-px bg-accent/30" />
             <h2 className="text-3xl md:text-5xl font-serif text-textPrimary leading-tight min-h-[3.6rem] md:min-h-[6rem]">
               - {typewriterText}
-              <span className="animate-pulse ml-1 inline-block w-[2px] h-[0.8em] bg-accent align-middle">|</span>
             </h2>
           </motion.div>
 

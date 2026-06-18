@@ -38,8 +38,8 @@
       "visaIssueDate": "",
       "visaExpiryDate": ""
     },
-    "github": "https://github.com/dv5198",
-    "github_username": "dv5198",
+    "github": "https://github.com/DivyaNirankariOfficial",
+    "github_username": "DivyaNirankariOfficial",
     "linkedin": "https://www.linkedin.com/in/divya-nirankari/",
     "photo": "uploads/profile_photo.jpg",
     "timezone": "IST",
@@ -141,7 +141,7 @@
       "techStack": "AI, ML, Image Processing",
       "visible": true,
       "period": "2024 - 2025",
-      "github": "https://github.com/dv5198/Parkinson-Disease-Detection"
+      "github": "https://github.com/DivyaNirankariOfficial/Parkinson-Disease-Detection"
     },
     {
       "name": "AI-Engineer-Portfolio",
@@ -150,7 +150,7 @@
       "role": "Full Stack / Lead Developer",
       "visible": true,
       "period": "2024 - 2025",
-      "github": "https://github.com/dv5198/AI-Engineer-Portfolio"
+      "github": "https://github.com/DivyaNirankariOfficial/AI-Engineer-Portfolio"
     }
   ],
   "achievements": [
@@ -246,8 +246,8 @@
     {
       "id": "conn_1",
       "platform": "GitHub",
-      "url": "https://github.com/dv5198",
-      "handle": "dv5198",
+      "url": "https://github.com/DivyaNirankariOfficial",
+      "handle": "DivyaNirankariOfficial",
       "visible": true,
       "order": 0
     },
@@ -293,7 +293,7 @@
     "card_4_label": "Research to Production"
   },
   "project_visibility": {
-    "dv5198": false,
+    "DivyaNirankariOfficial": false,
     "card_prediction_project": false,
     "CMS_project": false,
     "shareme": false,
