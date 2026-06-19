@@ -22,6 +22,7 @@ requests==2.32.5
 playwright==1.58.0
 reportlab==4.4.10
 Pillow==12.0.0
+pypdf==6.0.0
 
 # Template rendering (used in pdf_playwright.py)
 Jinja2==3.1.6

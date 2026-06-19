@@ -15,8 +15,6 @@ async def get_projects():
     github_handle = data.get("profile", {}).get("github", "")
     username = github_handle.split("/")[-1] if github_handle else "DivyaNirankariOfficial"
     
-    print("[projects] GitHub Handle:", github_handle)
-    print("[projects] Resolved Username:", username)
     
     repos = await fetch_github_projects(username)
     if repos is None:

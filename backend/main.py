@@ -61,6 +61,27 @@ def startup_event():
 
     def warmup_and_pregen():
         """Warm up Playwright, then trigger cold-start PDF pre-generation."""
+        from pathlib import Path
+        import os
+        print("========== PLAYWRIGHT DEBUG ==========")
+        print(
+            "PLAYWRIGHT CACHE EXISTS:",
+            Path("/opt/render/.cache/ms-playwright").exists()
+        )
+
+        print(
+            "PLAYWRIGHT_BROWSERS_PATH:",
+            os.environ.get("PLAYWRIGHT_BROWSERS_PATH")
+        )
+
+        cache = Path("/opt/render/.cache/ms-playwright")
+        if cache.exists():
+            try:
+                print("CACHE CONTENTS:", list(cache.iterdir()))
+            except Exception as e:
+                print("CACHE ERROR:", e)
+
+        print("======================================")
         import asyncio
 
         # Step 1: Playwright warmup (prevents first request timeout)
