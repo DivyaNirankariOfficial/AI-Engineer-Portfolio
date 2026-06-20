@@ -277,20 +277,6 @@ DEFAULT_DATA = {
     "settings": {"hero3d": True}
 }
 
-def load_data_from_sqlite():
-    with sqlite3.connect(DB_FILE) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT data FROM portfolio_data WHERE id = 1")
-        row = cursor.fetchone()
-        if not row:
-            conn.execute(
-                "INSERT INTO portfolio_data (id, data, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP)",
-                (json.dumps(DEFAULT_DATA, ensure_ascii=False),)
-            )
-            conn.commit()
-            return DEFAULT_DATA.copy()
-        return json.loads(row[0])
-
 def load_data():
     global _data_cache, _data_cache_ts
 
@@ -299,102 +285,87 @@ def load_data():
         return _data_cache
 
     with FileLock(LOCK_FILE, timeout=10):
-        data = None
-        supabase_success = False
-
-        # 1. Try loading from Supabase
-        try:
-            from supabase_client import supabase
-            if supabase is not None:
-                response = (
-                    supabase
-                    .table("portfolio_data")
-                    .select("data")
-                    .eq("id", 1)
-                    .execute()
-                )
-                if response.data and len(response.data) > 0:
-                    data = response.data[0]["data"]
-                    if isinstance(data, str):
-                        data = json.loads(data)
-                    supabase_success = True
-        except Exception as e:
-            print(f"Supabase load failed: {e}")
-
-        # 2. Fallback to local SQLite if Supabase failed or returned empty
-        if not supabase_success or data is None:
-            try:
-                data = load_data_from_sqlite()
-            except Exception as e:
-                print(f"SQLite load failed: {e}")
-                data = DEFAULT_DATA.copy()
-
-        # Run migration/normalization checks on `data`
-        changed = False
-    
-        if "profile" in data:
-            profile = data["profile"]
-            if "personal" not in profile:
-                profile["personal"] = DEFAULT_DATA["profile"]["personal"].copy()
-                changed = True
-            if "visa_info" not in profile:
-                profile["visa_info"] = DEFAULT_DATA["profile"]["visa_info"].copy()
-                changed = True
-            if "visa" not in profile:
-                profile["visa"] = DEFAULT_DATA["profile"]["visa"].copy()
-                changed = True
-            flat_to_personal = ["dob", "dateOfBirth", "gender", "nationality", "military_service", "marital_status"]
-            for field in flat_to_personal:
-                if field in profile:
-                    target_field = "dob" if field == "dateOfBirth" else field
-                    profile["personal"][target_field] = profile.pop(field)
-                    changed = True
-            flat_to_visa = ["visaType", "visaIssueDate", "visaExpiryDate"]
-            for field in flat_to_visa:
-                if field in profile:
-                    profile["visa_info"][field] = profile.pop(field)
-                    changed = True
-            japan_fields = {
-                "name_furigana": "", "nationality_ja": "", "address_furigana": "",
-                "commute_time": "", "dependents_count": 0, "has_spouse": False,
-                "spouse_dependency": False, "self_pr_ja": "", "self_pr_ja_detailed": "",
-                "career_summary_ja": "", "desired_conditions_ja": "貴社の規定に従います。"
-            }
-            if "personal" in profile:
-                for k, v in japan_fields.items():
-                    if k not in profile["personal"]:
-                        profile["personal"][k] = v
-                        changed = True
-        for k, v in DEFAULT_DATA.items():
-            if k not in data:
-                data[k] = v
-                changed = True
-
-        # ── Sync github / github_username in profile from connections ────────────
-        connections = data.get("connections", [])
-        github_conn = next((c for c in connections if c.get("platform", "").lower() == "github"), None)
-        if github_conn:
-            github_url = github_conn.get("url", "")
-            github_handle = github_conn.get("handle", "")
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT data FROM portfolio_data WHERE id = 1")
+            row = cursor.fetchone()
             
-            # Determine username from handle, fallback to url parsing
-            username = github_handle
-            if not username and github_url:
-                username = github_url.rstrip("/").split("/")[-1]
-                
-            profile = data.setdefault("profile", {})
-            if profile.get("github") != github_url or profile.get("github_username") != username:
-                profile["github"] = github_url
-                profile["github_username"] = username
-                changed = True
+            if not row:
+                conn.execute(
+                    "INSERT INTO portfolio_data (id, data, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP)",
+                    (json.dumps(DEFAULT_DATA, ensure_ascii=False),)
+                )
+                conn.commit()
+                _data_cache = DEFAULT_DATA
+                _data_cache_ts = time.time()
+                return DEFAULT_DATA
+            
+            data = json.loads(row[0])
+            changed = False
+    
+            if "profile" in data:
+                profile = data["profile"]
+                if "personal" not in profile:
+                    profile["personal"] = DEFAULT_DATA["profile"]["personal"].copy()
+                    changed = True
+                if "visa_info" not in profile:
+                    profile["visa_info"] = DEFAULT_DATA["profile"]["visa_info"].copy()
+                    changed = True
+                if "visa" not in profile:
+                    profile["visa"] = DEFAULT_DATA["profile"]["visa"].copy()
+                    changed = True
+                flat_to_personal = ["dob", "dateOfBirth", "gender", "nationality", "military_service", "marital_status"]
+                for field in flat_to_personal:
+                    if field in profile:
+                        target_field = "dob" if field == "dateOfBirth" else field
+                        profile["personal"][target_field] = profile.pop(field)
+                        changed = True
+                flat_to_visa = ["visaType", "visaIssueDate", "visaExpiryDate"]
+                for field in flat_to_visa:
+                    if field in profile:
+                        profile["visa_info"][field] = profile.pop(field)
+                        changed = True
+                japan_fields = {
+                    "name_furigana": "", "nationality_ja": "", "address_furigana": "",
+                    "commute_time": "", "dependents_count": 0, "has_spouse": False,
+                    "spouse_dependency": False, "self_pr_ja": "", "self_pr_ja_detailed": "",
+                    "career_summary_ja": "", "desired_conditions_ja": "貴社の規定に従います。"
+                }
+                if "personal" in profile:
+                    for k, v in japan_fields.items():
+                        if k not in profile["personal"]:
+                            profile["personal"][k] = v
+                            changed = True
+            for k, v in DEFAULT_DATA.items():
+                if k not in data:
+                    data[k] = v
+                    changed = True
 
-        # ── Trim activityLog to 50 entries max ────────────────────────────
-        if "activityLog" in data and len(data["activityLog"]) > 50:
-            data["activityLog"] = data["activityLog"][:50]
-            changed = True
+            # ── Sync github / github_username in profile from connections ────────────
+            connections = data.get("connections", [])
+            github_conn = next((c for c in connections if c.get("platform", "").lower() == "github"), None)
+            if github_conn:
+                github_url = github_conn.get("url", "")
+                github_handle = github_conn.get("handle", "")
+                
+                # Determine username from handle, fallback to url parsing
+                username = github_handle
+                if not username and github_url:
+                    username = github_url.rstrip("/").split("/")[-1]
                     
-        if changed:
-            _save_data_internal(data)
+                profile = data.setdefault("profile", {})
+                if profile.get("github") != github_url or profile.get("github_username") != username:
+                    profile["github"] = github_url
+                    profile["github_username"] = username
+                    changed = True
+
+            # ── Trim activityLog to 50 entries max ────────────────────────────
+            if "activityLog" in data and len(data["activityLog"]) > 50:
+                data["activityLog"] = data["activityLog"][:50]
+                changed = True
+                    
+            if changed:
+                _save_data_internal(data)
 
     # ── Calculate dynamic Stats (Metric Flux) ──────────────────────────────────
     if "stats" not in data:
@@ -441,30 +412,12 @@ def _save_data_internal(data):
     # Trim activityLog before every save
     if "activityLog" in data and len(data["activityLog"]) > 50:
         data["activityLog"] = data["activityLog"][:50]
-
-    # 1. Save to Supabase (Primary)
-    try:
-        from supabase_client import supabase
-        if supabase is not None:
-            supabase.table("portfolio_data").upsert({
-                "id": 1,
-                "data": data,
-                "updated_at": datetime.now().isoformat()
-            }).execute()
-    except Exception as e:
-        print(f"Supabase save failed: {e}")
-
-    # 2. Save to SQLite (Local backup)
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            conn.execute(
-                "INSERT OR REPLACE INTO portfolio_data (id, data, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP)",
-                (json.dumps(data, ensure_ascii=False),)
-            )
-            conn.commit()
-    except Exception as e:
-        print(f"SQLite save failed: {e}")
-
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO portfolio_data (id, data, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP)",
+            (json.dumps(data, ensure_ascii=False),)
+        )
+        conn.commit()
     _clear_pdf_cache_db_internal()
 
 def log_resume_download(ip: str, country: str, region: str, format_label: str):
@@ -473,76 +426,39 @@ def log_resume_download(ip: str, country: str, region: str, format_label: str):
     Keeps only the last 100 entries to prevent file bloat.
     """
     with FileLock(LOCK_FILE, timeout=10):
-        # Load fresh data
-        data = None
-        supabase_success = False
-        try:
-            from supabase_client import supabase
-            if supabase is not None:
-                response = (
-                    supabase
-                    .table("portfolio_data")
-                    .select("data")
-                    .eq("id", 1)
-                    .execute()
-                )
-                if response.data and len(response.data) > 0:
-                    data = response.data[0]["data"]
-                    if isinstance(data, str):
-                        data = json.loads(data)
-                    supabase_success = True
-        except Exception as e:
-            print(f"Supabase load for log failed: {e}")
-
-        if not supabase_success or data is None:
-            try:
-                data = load_data_from_sqlite()
-            except Exception as e:
-                print(f"SQLite load for log failed: {e}")
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT data FROM portfolio_data WHERE id = 1")
+            row = cursor.fetchone()
+            
+            if row:
+                data = json.loads(row[0])
+            else:
                 data = DEFAULT_DATA.copy()
                 
-        if "analytics" not in data:
-            data["analytics"] = []
+            if "analytics" not in data:
+                data["analytics"] = []
+                
+            event_entry = {
+                "timestamp": datetime.now().isoformat(),
+                "event": "resume_download",
+                "ip": ip,
+                "country": country,
+                "region": region,
+                "format": format_label
+            }
             
-        event_entry = {
-            "timestamp": datetime.now().isoformat(),
-            "event": "resume_download",
-            "ip": ip,
-            "country": country,
-            "region": region,
-            "format": format_label
-        }
-        
-        data["analytics"].insert(0, event_entry)
-        
-        if len(data["analytics"]) > 100:
-            data["analytics"] = data["analytics"][:100]
+            data["analytics"].insert(0, event_entry)
             
-        # Save to both
-        # 1. Supabase
-        try:
-            from supabase_client import supabase
-            if supabase is not None:
-                supabase.table("portfolio_data").upsert({
-                    "id": 1,
-                    "data": data,
-                    "updated_at": datetime.now().isoformat()
-                }).execute()
-        except Exception as e:
-            print(f"Supabase save for log failed: {e}")
-
-        # 2. SQLite
-        try:
-            with sqlite3.connect(DB_FILE) as conn:
-                conn.execute(
-                    "INSERT OR REPLACE INTO portfolio_data (id, data, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP)",
-                    (json.dumps(data, ensure_ascii=False),)
-                )
-                conn.commit()
-        except Exception as e:
-            print(f"SQLite save for log failed: {e}")
-            
-        _invalidate_cache()
+            if len(data["analytics"]) > 100:
+                data["analytics"] = data["analytics"][:100]
+                
+            conn.execute(
+                "INSERT OR REPLACE INTO portfolio_data (id, data, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP)",
+                (json.dumps(data, ensure_ascii=False),)
+            )
+            conn.commit()
+            _invalidate_cache()
             
     return event_entry
 
