@@ -1,0 +1,19 @@
+{
+  "firstPaint": 1184,
+  "firstContentfulPaint": 2720,
+  "largestContentfulPaint": 4720,
+  "cumulativeLayoutShift": 0.002,
+  "componentMountTimeline": {
+    "hero": 2132,
+    "about": 2133,
+    "exploring": 2133,
+    "experience": 2133,
+    "skills": 2133,
+    "projects": 2133,
+    "contact": 2133,
+    "research": 7217,
+    "achievements": 7217,
+    "testimonials": 7217,
+    "blog": 7217
+  }
+}

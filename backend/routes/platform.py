@@ -164,6 +164,7 @@ async def github_webhook(request: Request, x_hub_signature_256: str = Header(Non
         raise HTTPException(status_code=401, detail="Invalid signature")
 
     import json
+    import asyncio
     try:
         payload = json.loads(body)
         repo_name = payload.get("repository", {}).get("name")
@@ -177,15 +178,32 @@ async def github_webhook(request: Request, x_hub_signature_256: str = Header(Non
             from services.github import clear_readme_image_cache
             clear_readme_image_cache()
             print("GitHub Push detected but repo name not found. Cleared all README caches and repos cache.")
+
+        # Invalidate database caches by spawning immediate background refreshes
+        github_handle = data.get("profile", {}).get("github", "")
+        username = github_handle.split("/")[-1] if github_handle else "DivyaNirankariOfficial"
+        
+        from services.github import refresh_github_projects_cache
+        from services.github_graphql import refresh_github_contributions_cache
+        
+        print(f"[webhook] Triggering immediate cache refresh for {username}...")
+        asyncio.create_task(refresh_github_projects_cache(username))
+        asyncio.create_task(refresh_github_contributions_cache(username))
+
     except Exception as e:
         print(f"Error parsing webhook payload: {e}")
         
     return {"status": "verified"}
 # --- GitHub Contributions ---
 @router.get("/github/contributions/")
-async def get_github_contributions(username: str):
+async def get_github_contributions(username: Optional[str] = None):
+    if not username:
+        data = load_data()
+        github_handle = data.get("profile", {}).get("github", "")
+        username = github_handle.split("/")[-1] if github_handle else "DivyaNirankariOfficial"
+        
     from services.github_graphql import fetch_github_contributions
     contributions = await fetch_github_contributions(username)
-    if not contributions:
+    if not contributions or (isinstance(contributions, dict) and "error" in contributions):
         raise HTTPException(status_code=503, detail="GitHub API Error")
     return contributions

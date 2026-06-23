@@ -80,6 +80,29 @@ const ProjectCard = ({ project, idx }) => {
   );
 };
 
+const ProjectSkeleton = () => {
+  return (
+    <div className="flex flex-col bg-background border border-textPrimary/5 overflow-hidden shadow-none h-full animate-pulse">
+      <div className="h-56 skeleton-shimmer border-b border-textPrimary/5" />
+      <div className="p-8 flex-grow flex flex-col">
+        <div className="flex justify-between items-start mb-4">
+          <div className="h-8 bg-textPrimary/10 w-2/3 rounded" />
+          <div className="h-4 bg-textPrimary/5 w-1/6 rounded mt-2" />
+        </div>
+        <div className="h-4 bg-textPrimary/5 w-full rounded mb-3 mt-4" />
+        <div className="h-4 bg-textPrimary/5 w-5/6 rounded mb-8" />
+        <div className="mt-auto pt-6 flex items-center justify-between border-t border-textPrimary/5">
+          <div className="h-4 bg-textPrimary/5 w-1/4 rounded" />
+          <div className="flex gap-4">
+            <div className="w-4 h-4 bg-textPrimary/10 rounded-full" />
+            <div className="w-4 h-4 bg-textPrimary/10 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Projects = () => {
   const { data } = useContext(PortfolioContext);
   const [projects, setProjects] = useState([]);
@@ -113,8 +136,8 @@ const Projects = () => {
         setLoading(false);
       }
     };
-    if (data) fetchProjects();
-  }, [data]);
+    fetchProjects();
+  }, []);
 
   if (!data || !data.sections_visibility?.projects) return null;
 
@@ -132,8 +155,10 @@ const Projects = () => {
         </div>
 
         {loading ? (
-          <div className="h-96 flex items-center justify-center font-mono text-xs uppercase tracking-widest opacity-30">
-            Fetching Systems...
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+            {[1, 2, 3].map((n) => (
+              <ProjectSkeleton key={n} />
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">

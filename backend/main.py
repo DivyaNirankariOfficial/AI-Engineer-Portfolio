@@ -50,17 +50,75 @@ from database import load_data
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 
+def run_github_cache_cron():
+    """Runs a background loop that refreshes GitHub cache every 6 hours."""
+    import time
+    import asyncio
+    from database import load_data
+    
+    # Wait 30 seconds after startup to avoid interfering with initial boot warmup
+    time.sleep(30)
+    
+    while True:
+        try:
+            print("[cron] Starting scheduled 6-hour GitHub cache refresh...")
+            data = load_data()
+            github_handle = data.get("profile", {}).get("github", "")
+            username = github_handle.split("/")[-1] if github_handle else "DivyaNirankariOfficial"
+            
+            # Start a new asyncio event loop for this thread to call our async functions
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            from services.github import refresh_github_projects_cache
+            from services.github_graphql import refresh_github_contributions_cache
+            
+            loop.run_until_complete(refresh_github_projects_cache(username))
+            loop.run_until_complete(refresh_github_contributions_cache(username))
+            
+            loop.close()
+            print("[cron] Scheduled GitHub cache refresh completed successfully.")
+        except Exception as e:
+            print(f"[cron] Error in scheduled GitHub cache refresh: {e}")
+            
+        time.sleep(6 * 3600)
 
 @app.on_event("startup")
 def startup_event():
-    load_data()
     if not os.path.exists(UPLOAD_DIR):
         os.makedirs(UPLOAD_DIR)
 
     import threading
 
     def warmup_and_pregen():
-        """Warm up Playwright, then trigger cold-start PDF pre-generation."""
+        """Warm up database cache and Playwright, then trigger cold-start PDF pre-generation."""
+        try:
+            print("[startup] Syncing SQLite cache from Supabase in background...")
+            from database import load_data, _invalidate_cache
+            _invalidate_cache()
+            data = load_data()
+            print("[startup] SQLite cache sync completed successfully.")
+            
+            # Warm up GitHub cache in background
+            github_handle = data.get("profile", {}).get("github", "")
+            username = github_handle.split("/")[-1] if github_handle else "DivyaNirankariOfficial"
+            print(f"[startup] Warming up GitHub cache for {username}...")
+            
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            from services.github import fetch_github_projects
+            from services.github_graphql import fetch_github_contributions
+            
+            loop.run_until_complete(fetch_github_projects(username))
+            loop.run_until_complete(fetch_github_contributions(username))
+            loop.close()
+            print("[startup] GitHub cache warmup completed.")
+            
+        except Exception as e:
+            print(f"[startup] SQLite cache sync/warmup failed: {e}")
+
         from pathlib import Path
         import os
         print("========== PLAYWRIGHT DEBUG ==========")
@@ -103,7 +161,7 @@ def startup_event():
             print(f"Cold-start pre-generation failed: {e}")
 
     threading.Thread(target=warmup_and_pregen, daemon=True).start()
-
+    threading.Thread(target=run_github_cache_cron, daemon=True).start()
 
 app.include_router(portfolio_router, prefix="/api/portfolio", tags=["portfolio"])
 app.include_router(projects_router, prefix="/api/projects", tags=["projects"])

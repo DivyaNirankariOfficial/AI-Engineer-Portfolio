@@ -283,6 +283,111 @@ def resume_status():
     return get_status()
 
 
+@router.get("/cache-status/")
+def cache_status():
+    """Returns the operational status, age, and TTL of all cached elements."""
+    import sqlite3
+    import dateutil.parser
+    from datetime import datetime, timezone
+    from database import DB_FILE, get_local_cache_with_health
+    from services.github import _github_refresh_lock, _github_sync_error
+
+    def get_status_for_key(key: str) -> dict:
+        cache_data = get_local_cache_with_health(key)
+        if not cache_data:
+            return {
+                "status": "stale",
+                "updated_at": None,
+                "expires_at": None,
+                "age_minutes": None,
+                "last_success_at": None,
+                "last_error": None
+            }
+            
+        updated_at = cache_data["updated_at"]
+        expires_at = cache_data["expires_at"]
+        last_success_at = cache_data["last_success_at"]
+        last_error = cache_data["last_error"]
+        status = cache_data["status"]
+        
+        try:
+            up_dt = dateutil.parser.isoparse(updated_at.replace(" ", "T") + "Z" if " " in updated_at else updated_at)
+            now_dt = datetime.now(timezone.utc)
+            age_minutes = int((now_dt - up_dt).total_seconds() / 60)
+        except Exception:
+            age_minutes = 0
+            
+        return {
+            "status": status if status else "stale",
+            "updated_at": updated_at,
+            "expires_at": expires_at,
+            "age_minutes": age_minutes,
+            "last_success_at": last_success_at,
+            "last_error": last_error
+        }
+
+    # 1. Portfolio Sync Status
+    portfolio_meta = {
+        "status": "fresh",
+        "updated_at": None,
+        "expires_at": "N/A (Write-Through)",
+        "age_minutes": None,
+        "last_success_at": None,
+        "last_error": None
+    }
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT updated_at FROM portfolio_data WHERE id = 1")
+            row = cursor.fetchone()
+            if row:
+                updated_at = row[0]
+                up_dt = dateutil.parser.isoparse(updated_at.replace(" ", "T") + "Z" if " " in updated_at else updated_at)
+                age_minutes = int((datetime.now(timezone.utc) - up_dt).total_seconds() / 60)
+                portfolio_meta["updated_at"] = updated_at
+                portfolio_meta["age_minutes"] = age_minutes
+                portfolio_meta["last_success_at"] = updated_at
+    except Exception as e:
+        portfolio_meta["status"] = "error"
+        portfolio_meta["last_error"] = str(e)
+        print(f"Error reading portfolio sync status: {e}")
+
+    # 2. GitHub Projects Status
+    github_projects_meta = get_status_for_key("github_projects_meta")
+
+    # 3. GitHub Contributions Status
+    github_contribs_meta = get_status_for_key("github_contributions")
+
+    # 4. Resume PDF Status
+    from services.pregenerator import get_status as get_resume_status
+    pregen_status = get_resume_status()
+    last_gen = pregen_status.get("last_generated")
+    pdf_age_minutes = None
+    if last_gen:
+        try:
+            gen_dt = dateutil.parser.isoparse(last_gen)
+            pdf_age_minutes = int((datetime.now(timezone.utc) - gen_dt).total_seconds() / 60)
+        except Exception:
+            pass
+
+    resume_pdf_meta = {
+        "status": pregen_status.get("status", "stale"),
+        "updated_at": last_gen,
+        "expires_at": "N/A (On-demand trigger)",
+        "age_minutes": pdf_age_minutes,
+        "last_success_at": last_gen,
+        "last_error": pregen_status.get("error")
+    }
+
+    return {
+        "portfolio": portfolio_meta,
+        "github_projects": github_projects_meta,
+        "github_contributions": github_contribs_meta,
+        "resume_pdf": resume_pdf_meta
+    }
+
+
+
 @router.post("/regenerate-resumes/")
 async def regenerate_resumes(background_tasks: BackgroundTasks):
     """

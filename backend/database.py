@@ -51,6 +51,48 @@ def init_db():
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )"""
         )
+        # Check if local_cache has the new metadata fields
+        cursor = conn.cursor()
+        try:
+            cursor.execute("PRAGMA table_info(local_cache)")
+            cols = [row[1] for row in cursor.fetchall()]
+            if cols and "last_success_at" not in cols:
+                print("[database] Migrating local_cache table: dropping old schema...")
+                cursor.execute("DROP TABLE local_cache")
+                conn.commit()
+        except Exception as e:
+            print(f"[database] Migration check error: {e}")
+
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS local_cache (
+                cache_key TEXT PRIMARY KEY,
+                payload TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT NOT NULL,
+                last_success_at TEXT,
+                last_error TEXT,
+                status TEXT
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS github_projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                techStack TEXT,
+                stars INTEGER DEFAULT 0,
+                url TEXT,
+                html_url TEXT,
+                homepage TEXT,
+                language TEXT,
+                topics TEXT,
+                updated_at TEXT,
+                default_branch TEXT,
+                image TEXT,
+                has_image INTEGER DEFAULT 0,
+                is_github INTEGER DEFAULT 1
+            )"""
+        )
         conn.commit()
 
 init_db()
@@ -300,33 +342,51 @@ def load_data():
 
     with FileLock(LOCK_FILE, timeout=10):
         data = None
-        supabase_success = False
-
-        # 1. Try loading from Supabase
+        
+        # 1. Try reading directly from SQLite first
         try:
-            from supabase_client import supabase
-            if supabase is not None:
-                response = (
-                    supabase
-                    .table("portfolio_data")
-                    .select("data")
-                    .eq("id", 1)
-                    .execute()
-                )
-                if response.data and len(response.data) > 0:
-                    data = response.data[0]["data"]
-                    if isinstance(data, str):
-                        data = json.loads(data)
-                    supabase_success = True
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT data FROM portfolio_data WHERE id = 1")
+                row = cursor.fetchone()
+                if row:
+                    data = json.loads(row[0])
         except Exception as e:
-            print(f"Supabase load failed: {e}")
+            print(f"[database] SQLite direct read failed: {e}")
 
-        # 2. Fallback to local SQLite if Supabase failed or returned empty
-        if not supabase_success or data is None:
+        # 2. Warm SQLite synchronously if it is completely empty
+        if data is None:
+            print("[database] SQLite cache empty. Syncing synchronously from Supabase...")
+            try:
+                from supabase_client import supabase
+                if supabase is not None:
+                    response = (
+                        supabase
+                        .table("portfolio_data")
+                        .select("data")
+                        .eq("id", 1)
+                        .execute()
+                    )
+                    if response.data and len(response.data) > 0:
+                        data = response.data[0]["data"]
+                        if isinstance(data, str):
+                            data = json.loads(data)
+                        # Sync back to SQLite
+                        with sqlite3.connect(DB_FILE) as conn:
+                            conn.execute(
+                                "INSERT OR REPLACE INTO portfolio_data (id, data, updated_at) VALUES (1, ?, CURRENT_TIMESTAMP)",
+                                (json.dumps(data, ensure_ascii=False),)
+                            )
+                            conn.commit()
+            except Exception as e:
+                print(f"[database] Supabase sync fallback failed: {e}")
+
+        # 3. Final fallback to DEFAULT_DATA if both failed
+        if data is None:
             try:
                 data = load_data_from_sqlite()
             except Exception as e:
-                print(f"SQLite load failed: {e}")
+                print(f"[database] SQLite fallback failed: {e}")
                 data = DEFAULT_DATA.copy()
 
         # Run migration/normalization checks on `data`
@@ -451,8 +511,11 @@ def _save_data_internal(data):
                 "data": data,
                 "updated_at": datetime.now().isoformat()
             }).execute()
+        else:
+            raise ValueError("Supabase client is not initialized")
     except Exception as e:
         print(f"Supabase save failed: {e}")
+        raise RuntimeError(f"Supabase save failed: {e}") from e
 
     # 2. Save to SQLite (Local backup)
     try:
@@ -466,6 +529,13 @@ def _save_data_internal(data):
         print(f"SQLite save failed: {e}")
 
     _clear_pdf_cache_db_internal()
+
+    try:
+        from services.pregenerator import trigger_pdf_regeneration
+        trigger_pdf_regeneration()
+    except Exception as e:
+        print(f"[database] Failed to trigger PDF pregeneration on save: {e}")
+
 
 def log_resume_download(ip: str, country: str, region: str, format_label: str):
     """
@@ -628,4 +698,58 @@ def delete_translation_db(t_id: int):
         with sqlite3.connect(DB_FILE) as conn:
             conn.execute("DELETE FROM translations WHERE id = ?", (t_id,))
             conn.commit()
+
+def set_local_cache(key: str, payload: dict, expires_at: str):
+    """Inserts or replaces a generic JSON cache payload with expiration."""
+    with FileLock(LOCK_FILE, timeout=10):
+        with sqlite3.connect(DB_FILE) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO local_cache (cache_key, payload, updated_at, expires_at) VALUES (?, ?, CURRENT_TIMESTAMP, ?)",
+                (key, json.dumps(payload, ensure_ascii=False), expires_at)
+            )
+            conn.commit()
+
+def get_local_cache(key: str) -> dict | None:
+    """Retrieves generic local cache payload, updated_at and expires_at."""
+    with FileLock(LOCK_FILE, timeout=10):
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT payload, updated_at, expires_at FROM local_cache WHERE cache_key = ?", (key,))
+            row = cursor.fetchone()
+            if row:
+                payload, updated_at, expires_at = row
+                try:
+                    loaded_payload = json.loads(payload) if payload else None
+                except Exception:
+                    loaded_payload = payload
+                return {
+                    "payload": loaded_payload,
+                    "updated_at": updated_at,
+                    "expires_at": expires_at
+                }
+            return None
+
+def get_local_cache_with_health(key: str) -> dict | None:
+    """Retrieves cache payload, metadata, success_at, error, and status columns."""
+    with FileLock(LOCK_FILE, timeout=10):
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT payload, updated_at, expires_at, last_success_at, last_error, status FROM local_cache WHERE cache_key = ?", (key,))
+            row = cursor.fetchone()
+            if row:
+                payload, updated_at, expires_at, last_success_at, last_error, status = row
+                try:
+                    loaded_payload = json.loads(payload) if payload else None
+                except Exception:
+                    loaded_payload = payload
+                return {
+                    "payload": loaded_payload,
+                    "updated_at": updated_at,
+                    "expires_at": expires_at,
+                    "last_success_at": last_success_at,
+                    "last_error": last_error,
+                    "status": status
+                }
+            return None
+
 

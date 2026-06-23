@@ -1,0 +1,236 @@
+{
+  "navigation_load_duration_sec": 6.11,
+  "performance_api": {
+    "ttfb": 29,
+    "domContentLoaded": 5958,
+    "loadEvent": 5988,
+    "apis": [],
+    "jsBundles": [
+      {
+        "name": "Admin.jsx",
+        "url": "http://localhost:5173/src/pages/Admin.jsx",
+        "duration": 189,
+        "size_kb": 554.2
+      },
+      {
+        "name": "index.css",
+        "url": "http://localhost:5173/src/index.css",
+        "duration": 171,
+        "size_kb": 57.3
+      },
+      {
+        "name": "SubmitTestimonial.jsx",
+        "url": "http://localhost:5173/src/pages/SubmitTestimonial.jsx",
+        "duration": 101,
+        "size_kb": 41.8
+      },
+      {
+        "name": "Hero.jsx",
+        "url": "http://localhost:5173/src/components/Hero.jsx",
+        "duration": 109,
+        "size_kb": 32.4
+      },
+      {
+        "name": "MessageInbox.jsx",
+        "url": "http://localhost:5173/src/components/MessageInbox.jsx",
+        "duration": 86,
+        "size_kb": 30.7
+      },
+      {
+        "name": "ContactForm.jsx",
+        "url": "http://localhost:5173/src/components/ContactForm.jsx",
+        "duration": 48,
+        "size_kb": 30.1
+      },
+      {
+        "name": "Projects.jsx",
+        "url": "http://localhost:5173/src/components/Projects.jsx",
+        "duration": 119,
+        "size_kb": 28.5
+      },
+      {
+        "name": "Experience.jsx",
+        "url": "http://localhost:5173/src/components/Experience.jsx",
+        "duration": 126,
+        "size_kb": 28.4
+      },
+      {
+        "name": "ActivityHeatmap.jsx",
+        "url": "http://localhost:5173/src/components/ActivityHeatmap.jsx",
+        "duration": 137,
+        "size_kb": 28
+      },
+      {
+        "name": "HeroCanvas.jsx",
+        "url": "http://localhost:5173/src/components/HeroCanvas.jsx",
+        "duration": 80,
+        "size_kb": 28
+      },
+      {
+        "name": "CollectionEditor.jsx",
+        "url": "http://localhost:5173/src/components/CollectionEditor.jsx",
+        "duration": 89,
+        "size_kb": 26.4
+      },
+      {
+        "name": "AnalyticsDashboard.jsx",
+        "url": "http://localhost:5173/src/components/AnalyticsDashboard.jsx",
+        "duration": 75,
+        "size_kb": 25.6
+      },
+      {
+        "name": "Blog.jsx",
+        "url": "http://localhost:5173/src/components/Blog.jsx",
+        "duration": 146,
+        "size_kb": 24.2
+      },
+      {
+        "name": "Navbar.jsx",
+        "url": "http://localhost:5173/src/components/Navbar.jsx",
+        "duration": 100,
+        "size_kb": 19.9
+      },
+      {
+        "name": "Contact.jsx",
+        "url": "http://localhost:5173/src/components/Contact.jsx",
+        "duration": 132,
+        "size_kb": 17.5
+      },
+      {
+        "name": "Skills.jsx",
+        "url": "http://localhost:5173/src/components/Skills.jsx",
+        "duration": 115,
+        "size_kb": 15.1
+      },
+      {
+        "name": "About.jsx",
+        "url": "http://localhost:5173/src/components/About.jsx",
+        "duration": 113,
+        "size_kb": 14.9
+      },
+      {
+        "name": "Achievements.jsx",
+        "url": "http://localhost:5173/src/components/Achievements.jsx",
+        "duration": 129,
+        "size_kb": 14.3
+      },
+      {
+        "name": "Footer.jsx",
+        "url": "http://localhost:5173/src/components/Footer.jsx",
+        "duration": 135,
+        "size_kb": 14.2
+      },
+      {
+        "name": "Home.jsx",
+        "url": "http://localhost:5173/src/pages/Home.jsx",
+        "duration": 131,
+        "size_kb": 13.2
+      },
+      {
+        "name": "Testimonials.jsx",
+        "url": "http://localhost:5173/src/components/Testimonials.jsx",
+        "duration": 143,
+        "size_kb": 13.2
+      },
+      {
+        "name": "NotFound.jsx",
+        "url": "http://localhost:5173/src/pages/NotFound.jsx",
+        "duration": 215,
+        "size_kb": 12.3
+      },
+      {
+        "name": "PortfolioContext.jsx",
+        "url": "http://localhost:5173/src/context/PortfolioContext.jsx",
+        "duration": 194,
+        "size_kb": 12.2
+      },
+      {
+        "name": "Research.jsx",
+        "url": "http://localhost:5173/src/components/Research.jsx",
+        "duration": 140,
+        "size_kb": 11.7
+      },
+      {
+        "name": "App.jsx",
+        "url": "http://localhost:5173/src/App.jsx",
+        "duration": 181,
+        "size_kb": 11.4
+      },
+      {
+        "name": "LanguageSkills.jsx",
+        "url": "http://localhost:5173/src/components/LanguageSkills.jsx",
+        "duration": 63,
+        "size_kb": 11.3
+      },
+      {
+        "name": "CustomCursor.jsx",
+        "url": "http://localhost:5173/src/components/CustomCursor.jsx",
+        "duration": 199,
+        "size_kb": 11.2
+      },
+      {
+        "name": "CurrentlyExploring.jsx",
+        "url": "http://localhost:5173/src/components/CurrentlyExploring.jsx",
+        "duration": 142,
+        "size_kb": 10.2
+      },
+      {
+        "name": "CanvasParticles.jsx",
+        "url": "http://localhost:5173/src/components/CanvasParticles.jsx",
+        "duration": 194,
+        "size_kb": 9
+      },
+      {
+        "name": "Loader.jsx",
+        "url": "http://localhost:5173/src/components/Loader.jsx",
+        "duration": 214,
+        "size_kb": 8.4
+      },
+      {
+        "name": "ScrollToTop.jsx",
+        "url": "http://localhost:5173/src/components/ScrollToTop.jsx",
+        "duration": 203,
+        "size_kb": 7.5
+      },
+      {
+        "name": "AdminContext.jsx",
+        "url": "http://localhost:5173/src/context/AdminContext.jsx",
+        "duration": 204,
+        "size_kb": 7
+      },
+      {
+        "name": "main.jsx",
+        "url": "http://localhost:5173/src/main.jsx",
+        "duration": 67,
+        "size_kb": 3.7
+      },
+      {
+        "name": "imageGenerator.js",
+        "url": "http://localhost:5173/src/utils/imageGenerator.js",
+        "duration": 57,
+        "size_kb": 2.5
+      },
+      {
+        "name": "useTypewriter.js",
+        "url": "http://localhost:5173/src/hooks/useTypewriter.js",
+        "duration": 58,
+        "size_kb": 1.6
+      },
+      {
+        "name": "config.js",
+        "url": "http://localhost:5173/src/config.js",
+        "duration": 203,
+        "size_kb": 0.5
+      }
+    ],
+    "css": [],
+    "images": []
+  },
+  "console_logs": [
+    "[debug] [vite] connecting...",
+    "[info] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+    "[warning] \u26a0\ufe0f React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.",
+    "[warning] \u26a0\ufe0f React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.",
+    "[debug] [vite] connected."
+  ]
+}

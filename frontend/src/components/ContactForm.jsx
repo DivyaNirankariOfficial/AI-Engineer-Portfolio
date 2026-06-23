@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ContactForm = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '', website: '' });
   const [status, setStatus] = useState('idle'); // idle, loading, success, error
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -32,7 +32,7 @@ const ContactForm = () => {
       
       if (res.ok) {
         setStatus('success');
-        setFormData({ name: '', email: '', subject: '', message: '' });
+        setFormData({ name: '', email: '', subject: '', message: '', website: '' });
       } else {
         const err = await res.json();
         throw new Error(err.detail || 'Failed to send');
@@ -123,6 +123,18 @@ const ContactForm = () => {
                 className="w-full bg-transparent border-b border-warmBrown/10 py-3 px-1 focus:outline-none focus:border-accent font-serif placeholder:text-textSecondary/40 transition-colors resize-none"
                 value={formData.message}
                 onChange={e => setFormData({...formData, message: e.target.value})}
+              />
+            </div>
+
+            <div className="hidden" aria-hidden="true" style={{ display: 'none' }}>
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                value={formData.website}
+                onChange={e => setFormData({...formData, website: e.target.value})}
+                placeholder="If you are human, leave this blank"
+                autoComplete="off"
               />
             </div>
 

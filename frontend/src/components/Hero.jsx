@@ -1,10 +1,12 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, Suspense, lazy } from 'react';
 import { API_BASE_URL } from '../config';
 import { motion } from 'framer-motion';
 import { PortfolioContext } from '../context/PortfolioContext';
 import { GithubIcon, LinkedinIcon, Download } from 'lucide-react';
 import { useTypewriter } from '../hooks/useTypewriter';
-import HeroCanvas from './HeroCanvas';
+
+const HeroCanvas = lazy(() => import('./HeroCanvas'));
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -46,7 +48,11 @@ const Hero = () => {
 
       {/* 3D Background */}
       <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-        {data.settings?.hero3d !== false && <HeroCanvas />}
+        {data.settings?.hero3d !== false && (
+          <Suspense fallback={null}>
+            <HeroCanvas />
+          </Suspense>
+        )}
       </div>
 
       <motion.div
@@ -131,7 +137,7 @@ const Hero = () => {
                 {/* Auto-Detecting Resume Download */}
                   <a
                     href={downloadUrl}
-                    className="flex items-center gap-4 bg-textPrimary text-white px-8 py-5 hover:bg-accent transition-all duration-500 group whitespace-nowrap"
+                    className="flex items-center gap-4 bg-textPrimary text-white px-8 py-5 hover:bg-accent transition-all duration-500 group whitespace-nowrap rounded-lg"
                   >
                     <Download size={16} />
                     <span className="font-mono text-xs uppercase tracking-[0.2em]">Resume</span>

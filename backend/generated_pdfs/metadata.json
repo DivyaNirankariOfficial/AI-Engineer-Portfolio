@@ -1,80 +1,81 @@
 {
   "status": "ready",
-  "last_generated": "2026-06-08T16:33:13.087908+00:00",
+  "last_generated": "2026-06-23T14:55:29.572934+00:00",
   "variants": {
     "international_en.pdf": {
       "ok": true,
-      "elapsed": "66.4s",
+      "elapsed": "14.9s",
       "region": "international",
       "lang": "en"
     },
     "ats_usa_en.pdf": {
       "ok": true,
-      "elapsed": "18.4s",
+      "elapsed": "20.1s",
       "region": "ats_usa",
       "lang": "en"
     },
     "ats_uk_en.pdf": {
       "ok": true,
-      "elapsed": "12.1s",
+      "elapsed": "7.8s",
       "region": "ats_uk",
       "lang": "en"
     },
     "india_en.pdf": {
       "ok": true,
-      "elapsed": "12.6s",
+      "elapsed": "10.6s",
       "region": "india",
       "lang": "en"
     },
     "germany_en.pdf": {
       "ok": true,
-      "elapsed": "19.2s",
+      "elapsed": "17.2s",
       "region": "germany",
       "lang": "en"
     },
     "middleeast_en.pdf": {
       "ok": true,
-      "elapsed": "20.3s",
+      "elapsed": "36.7s",
       "region": "middleeast",
       "lang": "en"
     },
     "japan_ja.pdf": {
       "ok": true,
-      "elapsed": "35.1s",
+      "elapsed": "26.1s",
       "region": "japan",
       "lang": "ja"
     },
     "japan_en.pdf": {
       "ok": true,
-      "elapsed": "12.5s",
+      "elapsed": "15.9s",
       "region": "japan",
       "lang": "en"
     },
     "korea_ko.pdf": {
       "ok": true,
-      "elapsed": "14.7s",
+      "elapsed": "15.4s",
       "region": "korea",
       "lang": "ko"
     },
     "korea_en.pdf": {
       "ok": true,
-      "elapsed": "22.7s",
+      "elapsed": "9.0s",
       "region": "korea",
       "lang": "en"
     },
     "china_zh.pdf": {
       "ok": true,
-      "elapsed": "9.5s",
+      "elapsed": "22.6s",
       "region": "china",
       "lang": "zh"
     },
     "china_en.pdf": {
       "ok": true,
-      "elapsed": "5.7s",
+      "elapsed": "6.7s",
       "region": "china",
       "lang": "en"
     }
   },
-  "triggered_by": "startup",
-  "started_at": "2026-06-08T16:28:39.174577+00:00"
+  "triggered_by": "admin_edit_debounce",
+  "started_at": "2026-06-23T14:17:19.331228+00:00",
+  "last_data_update": "2026-06-23T14:17:11.381737+00:00"
 }

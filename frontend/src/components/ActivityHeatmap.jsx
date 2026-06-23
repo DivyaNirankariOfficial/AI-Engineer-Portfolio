@@ -3,6 +3,52 @@ import { API_BASE_URL } from '../config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PortfolioContext } from '../context/PortfolioContext';
 
+const HeatmapSkeleton = () => {
+  return (
+    <div className="w-full max-w-[800px] animate-pulse">
+      <div className="flex justify-between items-center mb-8">
+        <div className="h-5 bg-textPrimary/10 w-1/3 rounded" />
+        <div className="flex items-center gap-2">
+          <div className="h-3 bg-textPrimary/5 w-8 rounded" />
+          {[1, 2, 3, 4, 5].map((n) => (
+            <div key={n} className="w-3 h-3 bg-textPrimary/10 rounded-[2px]" />
+          ))}
+          <div className="h-3 bg-textPrimary/5 w-8 rounded" />
+        </div>
+      </div>
+
+      <div className="flex">
+        <div className="flex flex-col gap-[9px] pr-4 pt-6">
+          <div className="h-2.5 bg-textPrimary/5 w-6 rounded" />
+          <div className="h-2.5 bg-textPrimary/5 w-6 rounded" />
+          <div className="h-2.5 bg-textPrimary/5 w-6 rounded" />
+        </div>
+        
+        <div className="flex-1">
+          <div className="flex mb-3 justify-between">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="h-3 bg-textPrimary/5 rounded w-8" />
+            ))}
+          </div>
+          
+          <div className="flex gap-[3px] overflow-hidden">
+            {[...Array(53)].map((_, wIdx) => (
+              <div key={wIdx} className="flex flex-col gap-[3px]">
+                {[...Array(7)].map((_, dIdx) => (
+                  <div
+                    key={dIdx}
+                    className="w-[11px] h-[11px] rounded-[2px] bg-textPrimary/5 skeleton-shimmer"
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ActivityHeatmap = () => {
   const { data: portfolioData } = useContext(PortfolioContext);
   const [contributions, setContributions] = useState(null);
@@ -10,22 +56,23 @@ const ActivityHeatmap = () => {
   const [hoveredDay, setHoveredDay] = useState(null);
 
   useEffect(() => {
-    if (portfolioData?.profile?.github) {
-      const username = portfolioData.profile.github.split('/').pop();
-      fetch(`${API_BASE_URL}/api/platform/github/contributions/?username=${username}`)
-        .then(res => res.json())
-        .then(data => {
-          setContributions(data);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.error(err);
-          setLoading(false);
-        });
-    }
-  }, [portfolioData]);
+    // Fetch contributions immediately on mount (defaults to profile user on backend)
+    fetch(`${API_BASE_URL}/api/platform/github/contributions/`)
+      .then(res => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then(data => {
+        setContributions(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
 
-  if (!portfolioData?.sections_visibility?.activity) return null;
+  if (!portfolioData || !portfolioData.sections_visibility?.activity) return null;
 
   const colors = {
     0: "#e8e0d0", 
@@ -54,12 +101,10 @@ const ActivityHeatmap = () => {
         </div>
 
         <div 
-          className="bg-ivory p-4 md:p-8 overflow-hidden relative w-full flex justify-center"
+          className="bg-ivory p-4 md:p-8 overflow-hidden relative w-full flex justify-center border border-textPrimary/5"
         >
           {loading ? (
-            <div className="h-40 flex items-center justify-center font-mono text-sm text-warmBrown">
-              Synchronizing with GitHub...
-            </div>
+            <HeatmapSkeleton />
           ) : contributions?.weeks ? (
             <div className="w-full max-w-[800px]">
               <div className="flex justify-between items-center mb-8">
@@ -84,13 +129,13 @@ const ActivityHeatmap = () => {
                 </div>
                 
                 <div className="flex-1">
-                  <div className="flex mb-2 text-[9px] font-mono text-warmBrown">
+                  <div className="flex mb-2 text-[9px] font-mono text-warmBrown justify-between">
                     {monthLabels.map((m, i) => (
-                      <span key={i} style={{ width: `${100/12}%` }}>{m}</span>
+                      <span key={i} className="w-8 text-center">{m}</span>
                     ))}
                   </div>
                   
-                  <div className="flex gap-[3px]">
+                  <div className="flex gap-[3px] overflow-x-auto">
                     {contributions.weeks.map((week, wIdx) => (
                       <div key={wIdx} className="flex flex-col gap-[3px]">
                         {week.contributionDays.map((day, dIdx) => (

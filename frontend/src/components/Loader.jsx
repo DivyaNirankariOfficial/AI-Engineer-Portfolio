@@ -8,7 +8,7 @@ const Loader = ({ onComplete }) => {
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onComplete, 600); // Wait for fade out
-    }, 1800);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [onComplete]);

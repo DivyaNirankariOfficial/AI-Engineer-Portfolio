@@ -1,0 +1,64 @@
+{
+  "api_portfolio": {
+    "url": "http://localhost:8000/api/portfolio/",
+    "name": "Portfolio Config API",
+    "runs": [
+      "3815.6ms",
+      "9.0ms",
+      "7.9ms",
+      "10.0ms",
+      "9.4ms"
+    ],
+    "average_warm": "9.1ms",
+    "first_run": "3815.6ms",
+    "status_codes": [
+      200,
+      200,
+      200,
+      200,
+      200
+    ],
+    "sizes_bytes": [
+      18972,
+      18972,
+      18972,
+      18972,
+      18972
+    ]
+  },
+  "api_projects": {
+    "url": "http://localhost:8000/api/projects/",
+    "name": "Projects (GitHub + Local) API",
+    "runs": [
+      "10.6ms",
+      "9.7ms",
+      "7.9ms",
+      "10.7ms",
+      "6.3ms"
+    ],
+    "average_warm": "8.7ms",
+    "first_run": "10.6ms",
+    "status_codes": [
+      200,
+      200,
+      200,
+      200,
+      200
+    ],
+    "sizes_bytes": [
+      2242,
+      2242,
+      2242,
+      2242,
+      2242
+    ]
+  },
+  "github_direct": {
+    "success": true,
+    "status_code": 200,
+    "latency": "782.8ms",
+    "rate_limit_remaining": "59",
+    "rate_limit_limit": "60",
+    "repos_count": 15
+  }
+}

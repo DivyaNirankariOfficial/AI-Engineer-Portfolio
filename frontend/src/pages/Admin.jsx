@@ -346,7 +346,7 @@ const Admin = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
-                    <button type="submit" className="bg-warmBrown text-ivory py-4 font-mono text-xs tracking-[0.4em] uppercase hover:bg-black transition-all">
+                    <button type="submit" className="bg-warmBrown text-ivory py-4 font-mono text-xs tracking-[0.4em] uppercase hover:bg-black transition-all rounded-lg">
                         Decrypt
                     </button>
                 </form>
@@ -442,8 +442,8 @@ const Admin = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="flex bg-ivory p-1">
+                    <div className="flex flex-wrap items-center gap-4 justify-center md:justify-end">
+                        <div className="flex flex-wrap justify-center gap-1 bg-ivory p-1">
                             {tabs.map(tab => (
                                 <button
                                     key={tab.id}
@@ -996,10 +996,10 @@ const Admin = () => {
 
 
                     {activeTab === 'preview' && (
-                        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 h-[88vh]">
+                        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 h-auto lg:h-[88vh]">
                             {/* Toolbar */}
-                            <div className="flex items-center gap-6 bg-white/80 backdrop-blur-xl p-6 border border-warmBrown/10 shadow-lg rounded-xl">
-                                <div className="flex items-center gap-6">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white/80 backdrop-blur-xl p-6 border border-warmBrown/10 shadow-lg rounded-xl">
+                                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                                     <div className="flex flex-col gap-1.5">
                                         <label htmlFor="preview-country" className="font-mono text-[8px] uppercase tracking-[0.3em] text-textSecondary font-bold">Country Context</label>
                                         <select
@@ -1033,9 +1033,7 @@ const Admin = () => {
                                         </select>
                                     </div>
 
-
-
-                                    <div className="h-10 w-px bg-warmBrown/10" />
+                                    <div className="h-10 w-px bg-warmBrown/10 hidden sm:block" />
 
                                     <div className="flex items-center gap-3 bg-ivory/20 px-4 py-2 rounded-lg border border-warmBrown/5">
                                         <label className="font-mono text-[8px] uppercase tracking-[0.3em] text-textSecondary font-bold">Cover Letter</label>
@@ -1051,7 +1049,7 @@ const Admin = () => {
                                     </div>
                                 </div>
 
-                                <div className="ml-auto flex items-center gap-4">
+                                <div className="sm:ml-auto flex items-center justify-end gap-4 w-full sm:w-auto">
                                     <button
                                         onClick={() => {
                                             setIsRefreshing(true);
@@ -1098,8 +1096,8 @@ const Admin = () => {
                             </div>
 
                             {/* Document Viewer Frame */}
-                            <div className="flex-1 flex gap-6 overflow-hidden border-2 border-warmBrown/10 p-6 rounded-2xl bg-white/30 backdrop-blur-sm">
-                                <div className="flex-1 bg-ivory/20 border border-warmBrown/10 shadow-inner rounded-2xl overflow-hidden relative group flex flex-col">
+                            <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-y-auto lg:overflow-hidden border-2 border-warmBrown/10 p-6 rounded-2xl bg-white/30 backdrop-blur-sm">
+                                <div className="flex-1 h-[60vh] lg:h-auto bg-ivory/20 border border-warmBrown/10 shadow-inner rounded-2xl overflow-hidden relative group flex flex-col">
                                     {/* Mock Browser Header */}
                                     <div className="h-10 bg-white/50 border-b border-warmBrown/5 flex items-center px-4 gap-2">
                                         <div className="flex gap-1.5">
@@ -1136,7 +1134,7 @@ const Admin = () => {
                                 </div>
 
                                 {/* Sidebar Stats */}
-                                <div className="w-64 flex flex-col gap-4">
+                                <div className="w-full lg:w-64 flex flex-col gap-4">
                                     <div className="bg-white p-6 border border-warmBrown/10 shadow-sm rounded-xl space-y-4">
                                         <h4 className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold flex items-center gap-2">
                                             <div className="w-2 h-2 bg-accent rounded-full" /> Compliance Status

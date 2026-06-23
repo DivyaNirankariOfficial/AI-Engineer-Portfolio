@@ -57,6 +57,58 @@ RESUME_VARIANTS = [
 # ── State ─────────────────────────────────────────────────────────────────────
 _generation_lock = asyncio.Lock()
 _is_generating   = False
+_pdf_dirty       = False
+_debounce_timer_task = None
+
+async def _debounced_regeneration():
+    global _debounce_timer_task
+    try:
+        # Wait for 10 seconds debounce
+        await asyncio.sleep(10.0)
+        
+        # Run the pregeneration
+        await regenerate_all(triggered_by="admin_edit_debounce")
+            
+    except asyncio.CancelledError:
+        print("[pregenerator] Debounced PDF regeneration cancelled.")
+    except Exception as e:
+        print(f"[pregenerator] Error in debounced regeneration: {e}")
+    finally:
+        _debounce_timer_task = None
+
+def trigger_pdf_regeneration():
+    """
+    Triggers debounced PDF regeneration. Can be safely called from sync context.
+    Cancels previous timer if a new save comes in within 5 seconds.
+    """
+    global _debounce_timer_task
+    
+    # 1. Update metadata.json to show stale status immediately
+    try:
+        meta = _read_metadata()
+        meta["status"] = "stale"
+        meta["last_data_update"] = datetime.now(timezone.utc).isoformat()
+        _write_metadata(meta)
+    except Exception as e:
+        print(f"[pregenerator] Failed to write stale status: {e}")
+
+    # 2. Schedule the debounced task on the running loop or in a daemon thread
+    try:
+        loop = asyncio.get_running_loop()
+        # If there is a running loop, cancel the existing task if pending
+        if _debounce_timer_task and not _debounce_timer_task.done():
+            _debounce_timer_task.cancel()
+        _debounce_timer_task = loop.create_task(_debounced_regeneration())
+    except RuntimeError:
+        # If no running loop (e.g. sync context), run in a separate thread
+        import threading
+        def run_in_thread():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(_debounced_regeneration())
+            loop.close()
+        threading.Thread(target=run_in_thread, daemon=True).start()
+
 
 
 # ── Metadata helpers ──────────────────────────────────────────────────────────
@@ -82,6 +134,7 @@ def get_status() -> dict:
         "last_generated": meta.get("last_generated"),
         "is_generating":  _is_generating,
         "variants":       meta.get("variants", {}),
+        "error":          meta.get("error")
     }
 
 
@@ -180,9 +233,11 @@ async def regenerate_all(triggered_by: str = "manual") -> dict:
     Uses a lock so only one generation can run at a time.
     Safe to call from background tasks.
     """
-    global _is_generating
+    global _is_generating, _pdf_dirty
 
     if _is_generating:
+        print(f"[pregenerator] PDF rebuild already running (triggered by {triggered_by}). Marking dirty.")
+        _pdf_dirty = True
         return {"status": "already_running", "message": "Generation already in progress."}
 
     async with _generation_lock:
@@ -196,34 +251,44 @@ async def regenerate_all(triggered_by: str = "manual") -> dict:
         print(f"[pregenerator] Starting full regeneration (triggered by: {triggered_by})")
 
         try:
-            data            = load_data()
-            merged_projects = await _build_merged_projects(data)
-            results         = {}
+            while True:
+                data            = load_data()
+                merged_projects = await _build_merged_projects(data)
+                results         = {}
 
-            import copy
-            for region, lang, include_cover, filename in RESUME_VARIANTS:
-                output_path = OUTPUT_DIR / filename
-                t_start     = time.monotonic()
-                success     = await _generate_one(copy.deepcopy(data), merged_projects, region, lang, include_cover, output_path)
-                elapsed     = round(time.monotonic() - t_start, 1)
-                results[filename] = {
-                    "ok":      success,
-                    "elapsed": f"{elapsed}s",
-                    "region":  region,
-                    "lang":    lang,
-                }
-                status_icon = "OK" if success else "FAIL"
-                print(f"[pregenerator] {status_icon} {filename} ({elapsed}s)")
-                await asyncio.sleep(2.0)
+                import copy
+                for region, lang, include_cover, filename in RESUME_VARIANTS:
+                    output_path = OUTPUT_DIR / filename
+                    t_start     = time.monotonic()
+                    success     = await _generate_one(copy.deepcopy(data), merged_projects, region, lang, include_cover, output_path)
+                    elapsed     = round(time.monotonic() - t_start, 1)
+                    results[filename] = {
+                        "ok":      success,
+                        "elapsed": f"{elapsed}s",
+                        "region":  region,
+                        "lang":    lang,
+                    }
+                    status_icon = "OK" if success else "FAIL"
+                    print(f"[pregenerator] {status_icon} {filename} ({elapsed}s)")
+                    await asyncio.sleep(2.0)
 
-            all_ok = all(v["ok"] for v in results.values())
-            meta.update({
-                "status":         "ready" if all_ok else "partial",
-                "last_generated": datetime.now(timezone.utc).isoformat(),
-                "variants":       results,
-            })
-            _write_metadata(meta)
-            print(f"[pregenerator] Done — {'all OK' if all_ok else 'some variants failed'}.")
+                all_ok = all(v["ok"] for v in results.values())
+                meta.update({
+                    "status":         "ready" if all_ok else "partial",
+                    "last_generated": datetime.now(timezone.utc).isoformat(),
+                    "variants":       results,
+                })
+                _write_metadata(meta)
+                print(f"[pregenerator] Done — {'all OK' if all_ok else 'some variants failed'}.")
+
+                # Check if another save happened during this run
+                if _pdf_dirty:
+                    print("[pregenerator] PDF data was modified during generation. Running exactly one more pass...")
+                    _pdf_dirty = False
+                    # Loop back to top of while loop
+                else:
+                    break
+
             return {"status": meta["status"], "variants": results}
 
         except Exception as e:
