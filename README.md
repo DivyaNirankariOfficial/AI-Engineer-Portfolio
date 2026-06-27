@@ -30,8 +30,8 @@ The entire platform runs from a single source of truth — `data.json`. Whatever
 
 | Portfolio Interface | Research Foundation |
 |---|---|
-| ![Portfolio Cover](portfolio_mockup.jpg) | ![Research Thinking](Frontend panel.png) |
-[Admin Panel](Admin panel.png) |
+| ![Portfolio Cover](portfolio_mockup.jpg) | ![Research Thinking](Frontend_panel.png) |
+[Admin Panel](Admin_panel.png) |
 | *Warm ivory editorial aesthetic with antigravity particle system, levitating cards, and live GitHub project integration* | *The research-first philosophy behind the system — designed for engineers who think in signal flows and model architectures* |
 
 ---
