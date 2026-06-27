@@ -147,7 +147,7 @@ const ContactForm = () => {
             <button
               type="submit"
               disabled={status === 'loading'}
-              className="w-full bg-warmBrown text-ivory py-4 font-mono text-xs uppercase tracking-[0.3em] hover:bg-accent transition-all duration-500 disabled:opacity-50"
+              className="w-full bg-warmBrown text-ivory py-4 font-mono text-xs uppercase tracking-[0.3em] hover:bg-accent transition-all duration-500 disabled:opacity-50 rounded-lg"
             >
               {status === 'loading' ? 'Transmitting...' : 'Dispatch Message'}
             </button>

@@ -1,0 +1,7 @@
+-> resume download slow if site is not used daily.(backend slow maybe)
+-> minor round on contact form button.
+-> sometime render loading page is opened if website is not opend regular.
+-> why double click on resume button for downloading the resume.
+-> doubt: wht if admin chnages the data from admin panel. i think mostly things are hardcoded for resume nd cover letter.
+-> in mobile ux-> admin panel-> resume preview section -> reduce the size of compliance status so that admin can the the full resume.
+-> mobile ux -> tried login -> but unable to login (no error no message)

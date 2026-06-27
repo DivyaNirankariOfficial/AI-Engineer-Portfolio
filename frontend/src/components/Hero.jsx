@@ -27,6 +27,7 @@ const itemVariants = {
 
 const Hero = () => {
   const { data } = useContext(PortfolioContext);
+  const [downloadState, setDownloadState] = useState('idle'); // 'idle' | 'preparing'
   const titles = data?.profile?.titles || [
     "Artificial Intelligence",
     "NeuroAI",
@@ -37,6 +38,40 @@ const Hero = () => {
   const typewriterText = useTypewriter(titles);
 
   const downloadUrl = `${API_BASE_URL}/api/resume/download?download=true`;
+
+  const handleDownload = async (e) => {
+    e.preventDefault();
+    if (downloadState !== 'idle') return;
+    setDownloadState('preparing');
+    try {
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error('Download failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Determine file name from Content-Disposition if possible
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'divya_nirankari_resume.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/) || contentDisposition.match(/filename="?([^;"]+)"?/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = decodeURIComponent(filenameMatch[1]);
+        }
+      }
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download resume. Please try again.');
+    } finally {
+      setDownloadState('idle');
+    }
+  };
 
   if (!data) return <div className="min-h-[80vh] flex items-center justify-center">Loading...</div>;
   const { profile } = data;
@@ -135,13 +170,26 @@ const Hero = () => {
                     })}
                 </div>
                 {/* Auto-Detecting Resume Download */}
-                  <a
-                    href={downloadUrl}
-                    className="flex items-center gap-4 bg-textPrimary text-white px-8 py-5 hover:bg-accent transition-all duration-500 group whitespace-nowrap rounded-lg"
+                  <button
+                    onClick={handleDownload}
+                    disabled={downloadState !== 'idle'}
+                    className="flex items-center gap-4 bg-textPrimary text-white px-8 py-5 hover:bg-accent transition-all duration-500 group whitespace-nowrap rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Download size={16} />
-                    <span className="font-mono text-xs uppercase tracking-[0.2em]">Resume</span>
-                  </a>
+                    {downloadState === 'idle' ? (
+                      <>
+                        <Download size={16} />
+                        <span className="font-mono text-xs uppercase tracking-[0.2em]">Resume</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="font-mono text-xs uppercase tracking-[0.2em]">Preparing Resume...</span>
+                      </>
+                    )}
+                  </button>
               </div>
           </motion.div>
         </div>

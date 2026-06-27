@@ -17,7 +17,11 @@ export const AdminProvider = ({ children }) => {
       const data = await res.json();
       if (res.ok && data.token) {
         setToken(data.token);
-        sessionStorage.setItem('admin_token', data.token);
+        try {
+          sessionStorage.setItem('admin_token', data.token);
+        } catch (storageErr) {
+          console.warn('sessionStorage is disabled in this environment:', storageErr);
+        }
         return true;
       }
       return false;

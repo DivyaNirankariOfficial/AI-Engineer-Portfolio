@@ -42,6 +42,8 @@ const Admin = () => {
     const [verificationLang, setVerificationLang] = useState('en');
     const [atsScore, setAtsScore] = useState(0);
     const [atsChecks, setAtsChecks] = useState([]);
+    const [showComplianceDetails, setShowComplianceDetails] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
 
     useEffect(() => {
         const handleMessage = (event) => {
@@ -102,8 +104,24 @@ const Admin = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        const success = await login(password);
-        if (!success) setError('Invalid password');
+        if (isLoggingIn) return;
+        if (!password.trim()) {
+            setError('Digital key required');
+            return;
+        }
+        setIsLoggingIn(true);
+        setError('');
+        try {
+            const success = await login(password);
+            if (!success) {
+                setError('Invalid digital key');
+            }
+        } catch (err) {
+            console.error('Login error:', err);
+            setError('Connection failed. Server might be warming up.');
+        } finally {
+            setIsLoggingIn(false);
+        }
     };
 
     const handleLogout = () => {
@@ -329,11 +347,11 @@ const Admin = () => {
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen bg-ivory flex flex-col items-center justify-center relative z-20 overflow-hidden">
+            <div className="min-h-screen bg-ivory flex flex-col items-center justify-center relative z-20 overflow-y-auto py-8 px-4">
                 <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
                     <HeroCanvas />
                 </div>
-                <form onSubmit={handleLogin} className="bg-white p-12 border border-warmBrown/5 shadow-2xl flex flex-col gap-8 max-w-sm w-full relative z-10 backdrop-blur-md bg-white/90">
+                <form onSubmit={handleLogin} className="bg-white p-6 md:p-12 border border-warmBrown/5 shadow-2xl flex flex-col gap-5 md:gap-8 max-w-sm w-full relative z-10 backdrop-blur-md bg-white/90 rounded-2xl">
                     <div className="text-center">
                         <h2 className="text-4xl font-serif italic mb-2">Vault Entry</h2>
                         <p className="font-mono text-[10px] uppercase tracking-widest text-warmBrown/40">Secure Signal Required</p>
@@ -342,12 +360,27 @@ const Admin = () => {
                     <input
                         type="password"
                         placeholder="DIGITAL KEY"
-                        className="border-b border-warmBrown/10 p-3 focus:outline-none focus:border-accent font-mono text-center text-sm placeholder:opacity-20 transition-colors"
+                        className="border-b border-warmBrown/10 p-3 focus:outline-none focus:border-accent font-mono text-center text-sm placeholder:opacity-20 transition-colors disabled:opacity-50"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoggingIn}
                     />
-                    <button type="submit" className="bg-warmBrown text-ivory py-4 font-mono text-xs tracking-[0.4em] uppercase hover:bg-black transition-all rounded-lg">
-                        Decrypt
+                    <button 
+                        type="submit" 
+                        disabled={isLoggingIn}
+                        className="bg-warmBrown text-ivory py-4 font-mono text-xs tracking-[0.4em] uppercase hover:bg-black transition-all rounded-lg disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                        {isLoggingIn ? (
+                            <>
+                                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Decrypting...
+                            </>
+                        ) : (
+                            'Decrypt'
+                        )}
                     </button>
                 </form>
             </div>
@@ -1136,8 +1169,16 @@ const Admin = () => {
                                 {/* Sidebar Stats */}
                                 <div className="w-full lg:w-64 flex flex-col gap-4">
                                     <div className="bg-white p-6 border border-warmBrown/10 shadow-sm rounded-xl space-y-4">
-                                        <h4 className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold flex items-center gap-2">
-                                            <div className="w-2 h-2 bg-accent rounded-full" /> Compliance Status
+                                        <h4 className="font-mono text-[10px] uppercase tracking-widest text-accent font-bold flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-accent rounded-full" /> Compliance Status
+                                            </div>
+                                            <button
+                                                onClick={() => setShowComplianceDetails(!showComplianceDetails)}
+                                                className="lg:hidden font-mono text-[9px] text-accent uppercase tracking-widest border border-accent/20 px-2.5 py-1 rounded bg-accent/5 hover:bg-accent/10 transition-all font-bold"
+                                            >
+                                                {showComplianceDetails ? 'Less' : 'More'}
+                                            </button>
                                         </h4>
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between text-[10px] font-mono">
@@ -1148,32 +1189,36 @@ const Admin = () => {
                                                 <span className="text-textSecondary uppercase">Language</span>
                                                 <span className="text-warmBrown font-bold uppercase">{previewLanguage}</span>
                                             </div>
-                                            <div className="flex items-center justify-between text-[10px] font-mono">
-                                                <span className="text-textSecondary uppercase">Template</span>
-                                                <span className="text-warmBrown">v8.2 Final</span>
-                                            </div>
+                                            
+                                            {/* Collapsible Details */}
+                                            <div className={`space-y-3 border-t border-warmBrown/5 pt-2 ${showComplianceDetails ? 'block' : 'hidden lg:block'}`}>
+                                                <div className="flex items-center justify-between text-[10px] font-mono">
+                                                    <span className="text-textSecondary uppercase">Template</span>
+                                                    <span className="text-warmBrown">v8.2 Final</span>
+                                                </div>
 
-                                            <div className="pt-2 border-t border-warmBrown/5 space-y-2">
-                                                <div className="flex items-center justify-between text-[9px] font-mono">
-                                                    <span className="text-textSecondary">PHOTO POLICY</span>
-                                                    <span className={`${['usa', 'uk', 'international'].includes(previewCountry) ? 'text-emerald-600' : 'text-amber-600'} font-bold`}>
-                                                        {['usa', 'uk', 'international'].includes(previewCountry) ? 'HIDDEN' : 'SHOWN'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-[9px] font-mono">
-                                                    <span className="text-textSecondary">DOB POLICY</span>
-                                                    <span className={`${['usa', 'uk'].includes(previewCountry) ? 'text-emerald-600' : 'text-amber-600'} font-bold`}>
-                                                        {['usa', 'uk'].includes(previewCountry) ? 'HIDDEN' : 'SHOWN'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-[9px] font-mono">
-                                                    <span className="text-textSecondary">COVER LETTER</span>
-                                                    <span className={`${includeCoverLetter ? 'text-emerald-600' : 'text-warmBrown/20'} font-bold`}>
-                                                        {includeCoverLetter ? 'INCLUDED' : 'SKIPPED'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-[9px] text-emerald-600 font-bold italic pt-1">
-                                                    <CheckCircle2 size={10} /> ATS COMPATIBLE
+                                                <div className="pt-2 border-t border-warmBrown/5 space-y-2">
+                                                    <div className="flex items-center justify-between text-[9px] font-mono">
+                                                        <span className="text-textSecondary">PHOTO POLICY</span>
+                                                        <span className={`${['usa', 'uk', 'international'].includes(previewCountry) ? 'text-emerald-600' : 'text-amber-600'} font-bold`}>
+                                                            {['usa', 'uk', 'international'].includes(previewCountry) ? 'HIDDEN' : 'SHOWN'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-[9px] font-mono">
+                                                        <span className="text-textSecondary">DOB POLICY</span>
+                                                        <span className={`${['usa', 'uk'].includes(previewCountry) ? 'text-emerald-600' : 'text-amber-600'} font-bold`}>
+                                                            {['usa', 'uk'].includes(previewCountry) ? 'HIDDEN' : 'SHOWN'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-[9px] font-mono">
+                                                        <span className="text-textSecondary">COVER LETTER</span>
+                                                        <span className={`${includeCoverLetter ? 'text-emerald-600' : 'text-warmBrown/20'} font-bold`}>
+                                                            {includeCoverLetter ? 'INCLUDED' : 'SKIPPED'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-[9px] text-emerald-600 font-bold italic pt-1">
+                                                        <CheckCircle2 size={10} /> ATS COMPATIBLE
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1192,18 +1237,20 @@ const Admin = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="pt-4 space-y-2">
-                                                {atsChecks.map((check, i) => (
-                                                    <div key={i} className="flex items-start gap-2 text-[8px] font-mono text-warmBrown/60">
-                                                        <CheckCircle2 size={10} className="text-emerald-500 mt-0.5 shrink-0" />
-                                                        <span>{check}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            {atsChecks.length > 0 && (
+                                                <div className={`pt-4 space-y-2 border-t border-warmBrown/5 ${showComplianceDetails ? 'block' : 'hidden lg:block'}`}>
+                                                    {atsChecks.map((check, i) => (
+                                                        <div key={i} className="flex items-start gap-2 text-[8px] font-mono text-warmBrown/60">
+                                                            <CheckCircle2 size={10} className="text-emerald-500 mt-0.5 shrink-0" />
+                                                            <span>{check}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div className="bg-warmBrown/5 p-6 border border-warmBrown/10 rounded-xl space-y-3">
+                                    <div className={`bg-warmBrown/5 p-6 border border-warmBrown/10 rounded-xl space-y-3 ${showComplianceDetails ? 'block' : 'hidden lg:block'}`}>
                                         <h4 className="font-serif text-sm italic text-warmBrown">Quick Tips</h4>
                                         <p className="text-[10px] text-warmBrown/80 leading-relaxed font-sans font-medium">
                                             {previewCountry === 'usa' ? 'USA ATS format strictly forbids photos and DOB to comply with non-bias hiring laws.' :
