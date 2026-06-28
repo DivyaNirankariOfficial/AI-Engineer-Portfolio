@@ -110,7 +110,8 @@ Tracks page views, resume downloads (with hashed IP and detected country), proje
 | Backend | FastAPI + Python | Async REST API layer |
 | PDF | Jinja2 + Playwright | HTML template → regional PDF |
 | AI | Groq API (Llama 3.3/3.1) | Bio rewriting, summaries, commands |
-| Data | data.json + SQLite | Single source of truth / active cache |
+| Data | Supabase + SQLite | Primary cloud PostgreSQL database with SQLite local cache |
+| Storage | Supabase Storage | Persistent public bucket ('portfolio-assets') for profile/project images |
 | Geo | ip-api.com | IP → country → resume template |
 | Email | SMTP (Gmail) | Contact form + download alerts |
 | Webhooks | GitHub Webhooks | Auto-invalidate project cache |
@@ -140,6 +141,7 @@ Region is detected silently from the visitor's IP on page load. The download but
 - Python 3.10+
 - Groq API key from [console.groq.com](https://console.groq.com)
 - GitHub Personal Access Token (for GraphQL heatmap)
+- Supabase Project (with a public storage bucket named `portfolio-assets`)
 
 ### Backend
 
@@ -170,6 +172,8 @@ npm run dev
 ### Environment Variables
 
 ```env
+SUPABASE_URL=your-supabase-project-url
+SUPABASE_KEY=your-supabase-service-role-key-or-anon-key
 GROQ_API_KEY=gsk_your-key-here
 GITHUB_TOKEN=your-github-personal-access-token
 GITHUB_WEBHOOK_SECRET=your-webhook-secret
