@@ -14,6 +14,7 @@ from database import load_data, save_data
 from services.github import fetch_github_projects
 import shutil
 import os
+from services.storage import upload_file_to_storage
 
 router = APIRouter()
 
@@ -166,42 +167,32 @@ async def get_all_projects_admin():
     return formatted
 
 @router.post("/achievement-image/")
-async def upload_achievement_image(file: UploadFile = File(...)):
-    UPLOAD_DIR = "uploads"
-    if not os.path.exists(UPLOAD_DIR):
-        os.makedirs(UPLOAD_DIR)
-    
-    file_path = os.path.join(UPLOAD_DIR, "award.jpg")
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    return {"url": "http://localhost:8001/uploads/award.jpg"}
+async def upload_achievement_image(request: Request, file: UploadFile = File(...)):
+    file_content = await file.read()
+    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
+    filename = f"award.{ext}"
+    base_url = str(request.base_url).rstrip('/')
+    url = await upload_file_to_storage(file_content, filename, "achievements", base_url=base_url)
+    return {"url": url}
 
 @router.post("/profile-photo/")
-async def upload_profile_photo(file: UploadFile = File(...)):
-    UPLOAD_DIR = "uploads"
-    if not os.path.exists(UPLOAD_DIR):
-        os.makedirs(UPLOAD_DIR)
-    
-    file_path = os.path.join(UPLOAD_DIR, "profile_photo.jpg")
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    return {"url": "http://localhost:8001/uploads/profile_photo.jpg"}
+async def upload_profile_photo(request: Request, file: UploadFile = File(...)):
+    file_content = await file.read()
+    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
+    filename = f"profile_photo.{ext}"
+    base_url = str(request.base_url).rstrip('/')
+    url = await upload_file_to_storage(file_content, filename, "profile", base_url=base_url)
+    return {"url": url}
 
 @router.post("/project-image/")
-async def upload_project_image(file: UploadFile = File(...)):
+async def upload_project_image(request: Request, file: UploadFile = File(...)):
     import uuid
-    UPLOAD_DIR = "uploads"
-    if not os.path.exists(UPLOAD_DIR):
-        os.makedirs(UPLOAD_DIR)
-    
-    filename = f"project_{uuid.uuid4().hex}.jpg"
-    file_path = os.path.join(UPLOAD_DIR, filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    return {"url": f"uploads/{filename}"}
+    file_content = await file.read()
+    ext = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
+    filename = f"project_{uuid.uuid4().hex}.{ext}"
+    base_url = str(request.base_url).rstrip('/')
+    url = await upload_file_to_storage(file_content, filename, "projects", base_url=base_url)
+    return {"url": url}
 
 # --- Translation Management ---
 from database import get_all_translations, delete_translation_db, DB_FILE, LOCK_FILE

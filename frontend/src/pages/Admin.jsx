@@ -712,7 +712,7 @@ const Admin = () => {
                                     <div className="flex items-center gap-6 bg-ivory/20 p-4 border border-warmBrown/5">
                                         <div className="w-20 h-24 bg-white border border-warmBrown/10 overflow-hidden flex items-center justify-center">
                                             {formData.profile.photo ? (
-                                                <img src={`${API_BASE_URL}/${formData.profile.photo}?t=${Date.now()}`} alt="Profile" className="w-full h-full object-cover" />
+                                                <img src={formData.profile.photo.startsWith('http') ? formData.profile.photo : `${API_BASE_URL}/${formData.profile.photo}?t=${Date.now()}`} alt="Profile" className="w-full h-full object-cover" />
                                             ) : (
                                                 <span className="text-[8px] font-mono text-warmBrown/20 uppercase text-center p-2">No Photo Signal</span>
                                             )}
@@ -735,7 +735,7 @@ const Admin = () => {
                                                     });
                                                     const resJson = await res.json();
                                                     if (resJson.url) {
-                                                        handleChange('profile', 'photo', 'uploads/profile_photo.jpg');
+                                                        handleChange('profile', 'photo', resJson.url);
                                                         showToast('Photo Decanted Successfully');
                                                     }
                                                 }}

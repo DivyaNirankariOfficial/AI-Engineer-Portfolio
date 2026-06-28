@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import sys
 import os
 import shutil
+from services.storage import upload_file_to_storage
 
 # Adjust path to import main's load_data / save_data
 # Alternatively, I can move data logic here, but let's keep it simple
@@ -58,32 +59,19 @@ def update_portfolio(data: Dict[str, Any], background_tasks: BackgroundTasks):
     return {"status": "success", "data": updated}
 
 @router.post("/photo")
-async def upload_photo(file: UploadFile = File(...)):
-    import os
+async def upload_photo(request: Request, file: UploadFile = File(...)):
     from database import save_data, load_data
 
-    # Generate filename and path
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    upload_dir = os.path.join(base_dir, "uploads")
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
-
     # Safe file name
-    file_extension = file.filename.split(".")[-1].lower()
+    file_extension = file.filename.split(".")[-1].lower() if "." in file.filename else "jpg"
     if file_extension not in ["jpg", "jpeg", "png", "webp"]:
         raise HTTPException(status_code=400, detail="Only JPG, PNG, or WEBP are allowed.")
 
     filename = f"profile_photo.{file_extension}"
-    file_path = os.path.join(upload_dir, filename)
-
-    # Save physical file
-    with open(file_path, "wb") as buffer:
-        import shutil
-        shutil.copyfileobj(file.file, buffer)
-
-    # Note: Using absolute URL to backend static endpoint
-    # E.g. http://localhost:8001/uploads/profile_photo.jpg
-    photo_url = f"http://localhost:8001/uploads/{filename}"
+    file_content = await file.read()
+    base_url = str(request.base_url).rstrip('/')
+    
+    photo_url = await upload_file_to_storage(file_content, filename, "profile", base_url=base_url)
 
     # Save to data.json instantly
     current_data = load_data()
